@@ -6,16 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="JARVIS">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#00e5ff">
-<meta name="description" content="J.A.R.V.I.S. — Persoonlijke AI">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-startup-image" href="splash.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <title>J.A.R.V.I.S.</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
@@ -30,7 +20,6 @@
 }
 
 body{
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background:var(--bg);
   color:var(--c);
   font-family:'Rajdhani',sans-serif;
@@ -415,6 +404,24 @@ body::after{
   <div class="chat-area" id="chatArea"></div>
 </div>
 
+<!-- iPhone START scherm -->
+<div id="startScherm" style="display:none;position:fixed;inset:0;background:#010a0f;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;">
+  <div style="font-family:'Orbitron',sans-serif;font-size:22px;letter-spacing:8px;color:#00e5ff;text-shadow:0 0 20px #00e5ff;">J.A.R.V.I.S.</div>
+  <div style="font-size:11px;letter-spacing:3px;color:rgba(0,229,255,0.5);">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+  <button id="startKnop" style="margin-top:16px;padding:20px 48px;background:transparent;border:2px solid #00e5ff;color:#00e5ff;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:6px;border-radius:4px;cursor:pointer;box-shadow:0 0 30px rgba(0,229,255,0.3);-webkit-tap-highlight-color:transparent;">
+    ACTIVEER
+  </button>
+  <div style="font-size:10px;letter-spacing:2px;color:rgba(0,229,255,0.3);">TIK OM TE STARTEN</div>
+</div>
+
+<!-- iPhone START scherm -->
+<div id="startScherm" style="display:none;position:fixed;inset:0;background:#010a0f;z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:32px;">
+  <div style="font-family:'Orbitron',sans-serif;font-size:22px;letter-spacing:8px;color:#00e5ff;text-shadow:0 0 20px #00e5ff;">J.A.R.V.I.S.</div>
+  <div style="font-size:11px;letter-spacing:3px;color:rgba(0,229,255,0.5);">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
+  <button id="startKnop" style="margin-top:16px;padding:20px 48px;background:transparent;border:2px solid #00e5ff;color:#00e5ff;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:6px;border-radius:4px;cursor:pointer;box-shadow:0 0 30px rgba(0,229,255,0.3);">ACTIVEER</button>
+  <div style="font-size:10px;letter-spacing:2px;color:rgba(0,229,255,0.3);">TIK OM TE STARTEN</div>
+</div>
+
 <!-- Controls -->
 <div class="controls">
   <button class="ctrl-btn" id="cam-btn" onclick="toggleCamera()" title="Camera">📷</button>
@@ -769,9 +776,17 @@ function speakText(tekst) {
       clearTimeout(timeout);
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      audio.playsInline = true;
+      audio.setAttribute('playsinline', '');
+      audio.setAttribute('webkit-playsinline', '');
       audio.onended = () => { URL.revokeObjectURL(url); done(); };
       audio.onerror = () => { URL.revokeObjectURL(url); browserStem(tekst, done); };
-      audio.play().catch(() => browserStem(tekst, done));
+      // iOS: resume AudioContext voor afspelen
+      if (_ac && _ac.state === 'suspended') {
+        _ac.resume().then(() => audio.play().catch(() => browserStem(tekst, done)));
+      } else {
+        audio.play().catch(() => browserStem(tekst, done));
+      }
     }).catch(() => {
       clearTimeout(timeout);
       browserStem(tekst, done);
@@ -780,10 +795,15 @@ function speakText(tekst) {
 }
 
 function browserStem(tekst, done) {
+  // iOS Safari fix: cancel eventuele lopende spraak eerst
+  if (speechSynthesis.speaking) speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(tekst);
   u.lang = 'nl-NL'; u.rate = 0.88; u.pitch = 0.65;
-  u.onend = done; u.onerror = done;
-  speechSynthesis.speak(u);
+  u.volume = 1.0;
+  u.onend = done;
+  u.onerror = () => { console.log('[TTS] Spraak fout, toch doorgaan'); done(); };
+  // iOS fix: kleine vertraging voor betrouwbaarder afspelen
+  setTimeout(() => speechSynthesis.speak(u), 100);
 }
 
 // ── Commando's verwerken ─────────────────────────────
@@ -1222,16 +1242,51 @@ async function init() {
 }
 
 // ── Event listeners ──────────────────────────────────
-document.addEventListener('click', async () => {
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+async function unlockAudio() {
   try {
     if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
-    await _ac.resume();
+    if (_ac.state === 'suspended') await _ac.resume();
     const buf = _ac.createBuffer(1, 1, 22050);
     const src = _ac.createBufferSource();
     src.buffer = buf; src.connect(_ac.destination); src.start(0);
-    console.log('Audio unlocked!');
-  } catch(e) {}
-  if (!gestart) init();
+    console.log('[AUDIO] Unlocked:', _ac.state);
+  } catch(e) { console.log('[AUDIO] Fout:', e); }
+}
+
+const startScherm = document.getElementById('startScherm');
+const startKnop = document.getElementById('startKnop');
+
+// Toon altijd het startscherm — iOS en desktop
+if (startScherm) startScherm.style.display = 'flex';
+
+async function activeerJarvis(e) {
+  if (e) e.preventDefault();
+  // Audio unlock MOET direct in de tap/click handler
+  await unlockAudio();
+  if (speechSynthesis) {
+    const stil = new SpeechSynthesisUtterance(' ');
+    stil.volume = 0;
+    speechSynthesis.speak(stil);
+  }
+  if (startScherm) startScherm.style.display = 'none';
+  if (!gestart) await init();
+}
+
+if (startKnop) {
+  startKnop.addEventListener('touchend', activeerJarvis, {passive: false});
+  startKnop.addEventListener('click', activeerJarvis);
+}
+
+// Desktop fallback: klik ergens buiten startscherm
+document.addEventListener('click', async (e) => {
+  if (!gestart && (!startScherm || startScherm.style.display === 'none')) {
+    await unlockAudio();
+    await init();
+  }
 });
 
 // Microfoon knop
@@ -1397,15 +1452,5 @@ function annuleerDestruct() {
 }
 
 </script>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(() => console.log('[PWA] Service Worker actief'))
-          .catch(e => console.log('[PWA] SW fout:', e));
-      });
-    }
-  </script>
 </body>
 </html>
