@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>JARVIS Spotify</title>
+<style>
+body{background:#010a0f;color:#00e5ff;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px}
+.title{font-size:20px;letter-spacing:4px}
+.sub{font-size:11px;color:rgba(0,229,255,0.5);letter-spacing:2px}
+</style>
+</head>
+<body>
+<div class="title">J.A.R.V.I.S.</div>
+<div class="sub">SPOTIFY VERBINDING VERWERKEN...</div>
+<script>
+// Haal code uit URL en stuur door naar JARVIS
+const params=new URLSearchParams(window.location.search);
+const code=params.get('code');
+if(code){
+  // Sla code op en ga terug naar JARVIS
+  localStorage.setItem('sp_callback_code',code);
+  window.location.href='http://127.0.0.1:8080/jarvis-ai.html?sp_code='+code;
+}else{
+  document.querySelector('.sub').textContent='FOUT - GEEN CODE ONTVANGEN';
+}
+</script>
+</body>
+</html>

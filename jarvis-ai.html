@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#00e5ff">
+<meta name="description" content="J.A.R.V.I.S. — Persoonlijke AI">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-startup-image" href="splash.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>J.A.R.V.I.S.</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --c:#00e5ff;
+  --c2:rgba(0,229,255,0.5);
+  --c3:rgba(0,229,255,0.15);
+  --c4:rgba(0,229,255,0.05);
+  --bg:#010a0f;
+  --bg2:#020d14;
+}
+
+body{
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background:var(--bg);
+  color:var(--c);
+  font-family:'Rajdhani',sans-serif;
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+/* GRID ACHTERGROND */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* SCANLINES */
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);
+  pointer-events:none;
+  z-index:1;
+}
+
+/* HOEK DECORATIES */
+.corner{position:fixed;width:60px;height:60px;z-index:10;}
+.corner-tl{top:20px;left:20px;border-top:2px solid var(--c2);border-left:2px solid var(--c2);}
+.corner-tr{top:20px;right:20px;border-top:2px solid var(--c2);border-right:2px solid var(--c2);}
+.corner-bl{bottom:20px;left:20px;border-bottom:2px solid var(--c2);border-left:2px solid var(--c2);}
+.corner-br{bottom:20px;right:20px;border-bottom:2px solid var(--c2);border-right:2px solid var(--c2);}
+
+/* HEADER */
+.header{
+  position:fixed;
+  top:0;left:0;right:0;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  padding:24px 80px;
+  z-index:10;
+}
+.header-left{display:flex;flex-direction:column;gap:2px;}
+.header-label{font-size:9px;letter-spacing:4px;color:var(--c2);font-family:'Orbitron',sans-serif;}
+.header-title{font-size:18px;letter-spacing:6px;font-family:'Orbitron',sans-serif;font-weight:700;color:var(--c);text-shadow:0 0 20px var(--c);}
+.header-right{text-align:right;display:flex;flex-direction:column;gap:2px;}
+.status-line{font-size:9px;letter-spacing:3px;color:var(--c2);}
+.status-val{font-size:10px;letter-spacing:3px;color:var(--c);font-family:'Orbitron',sans-serif;}
+
+/* HOOFD CONTAINER */
+.main{
+  position:relative;
+  z-index:5;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+  width:100%;
+  max-width:900px;
+}
+
+/* JARVIS ICOON RING SYSTEEM */
+.orb-container{
+  position:relative;
+  width:320px;
+  height:320px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:20px;
+}
+
+/* Canvas voor animerende ringen */
+#orbCanvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+/* Icoon in midden */
+.orb-icon{
+  position:relative;
+  z-index:5;
+  width:130px;
+  height:130px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:radial-gradient(circle at 40% 35%, rgba(0,229,255,0.15), rgba(0,0,0,0.8));
+  border:2px solid rgba(0,229,255,0.4);
+  box-shadow:
+    0 0 30px rgba(0,229,255,0.3),
+    inset 0 0 30px rgba(0,229,255,0.05);
+  transition:box-shadow 0.1s;
+}
+.orb-icon.speaking{
+  box-shadow:
+    0 0 60px rgba(0,229,255,0.8),
+    0 0 120px rgba(0,229,255,0.4),
+    inset 0 0 40px rgba(0,229,255,0.2);
+  border-color:rgba(0,229,255,0.9);
+}
+.orb-icon canvas{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+}
+
+/* STATUS LABEL ONDER ORB */
+.orb-status{
+  font-family:'Orbitron',sans-serif;
+  font-size:9px;
+  letter-spacing:4px;
+  color:var(--c2);
+  margin-top:-10px;
+  margin-bottom:16px;
+  text-align:center;
+  min-height:14px;
+}
+
+/* CHAT BERICHTEN */
+.chat-area{
+  width:100%;
+  max-width:700px;
+  max-height:220px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:0 20px;
+  scrollbar-width:none;
+}
+.chat-area::-webkit-scrollbar{display:none;}
+
+.msg{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  animation:msgIn 0.3s ease;
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.msg.ai{flex-direction:row;}
+.msg.user{flex-direction:row-reverse;}
+
+.msg-badge{
+  font-family:'Orbitron',sans-serif;
+  font-size:7px;
+  letter-spacing:2px;
+  color:var(--c2);
+  white-space:nowrap;
+  padding-top:2px;
+  min-width:40px;
+}
+.msg.user .msg-badge{text-align:right;}
+
+.msg-bubble{
+  padding:8px 14px;
+  font-size:13px;
+  line-height:1.5;
+  letter-spacing:0.5px;
+  max-width:500px;
+  position:relative;
+}
+.msg.ai .msg-bubble{
+  border-left:2px solid var(--c2);
+  background:linear-gradient(90deg, rgba(0,229,255,0.06), transparent);
+  color:rgba(255,255,255,0.9);
+}
+.msg.user .msg-bubble{
+  border-right:2px solid rgba(0,229,255,0.3);
+  background:linear-gradient(90deg, transparent, rgba(0,229,255,0.04));
+  color:var(--c2);
+  text-align:right;
+}
+
+/* CONTROLS ONDERAAN */
+.controls{
+  position:fixed;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:16px;
+  z-index:20;
+}
+
+.ctrl-btn{
+  width:48px;height:48px;
+  border-radius:50%;
+  border:1px solid rgba(0,229,255,0.3);
+  background:rgba(0,229,255,0.05);
+  color:var(--c2);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  transition:all 0.2s;
+  backdrop-filter:blur(10px);
+}
+.ctrl-btn:hover{border-color:var(--c);color:var(--c);box-shadow:0 0 15px rgba(0,229,255,0.3);}
+
+.mic-btn{
+  width:68px;height:68px;
+  border-radius:50%;
+  border:2px solid var(--c);
+  background:rgba(0,229,255,0.08);
+  color:var(--c);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+  transition:all 0.2s;
+  box-shadow:0 0 20px rgba(0,229,255,0.2);
+  position:relative;
+}
+.mic-btn::before{
+  content:'';
+  position:absolute;
+  inset:-6px;
+  border-radius:50%;
+  border:1px solid rgba(0,229,255,0.2);
+}
+.mic-btn.listening{
+  background:rgba(0,229,255,0.15);
+  box-shadow:0 0 40px rgba(0,229,255,0.5);
+  animation:micPulse 1.5s ease-in-out infinite;
+}
+.mic-btn.listening::before{animation:micRing 1.5s ease-in-out infinite;}
+@keyframes micPulse{0%,100%{box-shadow:0 0 20px rgba(0,229,255,0.3)}50%{box-shadow:0 0 50px rgba(0,229,255,0.7)}}
+@keyframes micRing{0%,100%{transform:scale(1);opacity:0.5}50%{transform:scale(1.15);opacity:0.1}}
+
+.mic-label{
+  position:absolute;
+  bottom:-20px;
+  left:50%;transform:translateX(-50%);
+  font-size:8px;letter-spacing:3px;
+  color:var(--c2);white-space:nowrap;
+  font-family:'Orbitron',sans-serif;
+}
+
+/* TIMER */
+#timerBar{
+  position:fixed;top:0;left:0;right:0;height:2px;
+  background:rgba(0,229,255,0.1);z-index:100;display:none;
+}
+#timerFill{height:100%;background:var(--c);box-shadow:0 0 10px var(--c);transition:width 1s linear;}
+#timerDisplay{
+  position:fixed;top:8px;left:50%;transform:translateX(-50%);
+  font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:3px;
+  color:var(--c);z-index:100;display:none;
+  background:rgba(1,10,15,0.8);padding:2px 12px;
+}
+
+/* MUZIEK BAR */
+#muziekBar{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  display:none;align-items:center;gap:16px;
+  background:rgba(1,10,15,0.9);
+  border:1px solid rgba(0,229,255,0.2);
+  padding:8px 20px;
+  backdrop-filter:blur(20px);
+  min-width:320px;
+  z-index:30;
+}
+#muziekBar.active{display:flex;}
+.muz-icon{font-size:14px;color:var(--c);}
+#muziek-titel{font-size:10px;letter-spacing:2px;color:var(--c);flex:1;font-family:'Orbitron',sans-serif;}
+.muz-ctrl{background:none;border:none;color:var(--c2);cursor:pointer;font-size:14px;padding:2px 6px;}
+.muz-ctrl:hover{color:var(--c);}
+
+/* PRINTER PANEL */
+#printerPanel{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(1,10,15,0.97);
+  border:1px solid rgba(0,229,255,0.3);
+  padding:30px;width:340px;
+  display:none;z-index:50;
+  backdrop-filter:blur(20px);
+}
+#printerPanel.active{display:block;}
+.panel-title{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:4px;color:var(--c);margin-bottom:20px;text-align:center;}
+#printer-status{font-size:11px;letter-spacing:1px;color:var(--c2);margin-bottom:16px;text-align:center;min-height:16px;}
+.printer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.p-btn{
+  padding:10px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.05);
+  color:var(--c2);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:12px;
+  letter-spacing:1px;transition:all 0.2s;
+}
+.p-btn:hover{border-color:var(--c);color:var(--c);background:rgba(0,229,255,0.1);}
+.p-close{width:100%;padding:8px;background:none;border:1px solid rgba(0,229,255,0.2);color:var(--c2);cursor:pointer;font-size:11px;letter-spacing:2px;}
+
+/* ZELFDESTRUCT */
+#destructOverlay{
+  position:fixed;inset:0;background:rgba(180,0,0,0.15);
+  display:none;z-index:200;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+#destructOverlay.active{display:flex;}
+.destruct-box{
+  border:2px solid rgba(255,50,50,0.8);
+  background:rgba(5,0,0,0.95);
+  padding:40px;text-align:center;width:360px;
+}
+.destruct-title{font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:6px;color:#ff3333;margin-bottom:8px;}
+.destruct-sub{font-size:11px;letter-spacing:2px;color:rgba(255,100,100,0.7);margin-bottom:24px;}
+.destruct-input{
+  width:100%;background:rgba(255,0,0,0.08);border:1px solid rgba(255,50,50,0.4);
+  color:#ff6666;padding:12px;font-family:'Orbitron',sans-serif;font-size:14px;
+  text-align:center;letter-spacing:4px;margin-bottom:16px;outline:none;
+}
+.destruct-btns{display:flex;gap:10px;}
+.destruct-confirm{flex:1;padding:10px;background:rgba(255,0,0,0.2);border:1px solid rgba(255,50,50,0.5);color:#ff3333;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;}
+.destruct-cancel{flex:1;padding:10px;background:none;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);cursor:pointer;font-size:10px;letter-spacing:3px;}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .header{padding:16px 60px;}
+  .orb-container{width:220px;height:220px;}
+  .orb-icon{width:85px;height:85px;}
+  .chat-area{max-height:180px;padding:0 12px;}
+  .msg-bubble{font-size:12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Hoeken -->
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<!-- Timer -->
+<div id="timerBar"><div id="timerFill" style="width:100%"></div></div>
+<div id="timerDisplay"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-label">SYSTEEM ACTIEF</div>
+    <div class="header-title">J.A.R.V.I.S.</div>
+  </div>
+  <div class="header-right">
+    <div class="status-line">SYSTEEM</div>
+    <div class="status-val" id="sysStatus">ONLINE</div>
+    <div class="status-line" style="margin-top:4px">STATUS</div>
+    <div class="status-val" id="statusTxt">GEREED</div>
+  </div>
+</div>
+
+<!-- Hoofd -->
+<div class="main">
+
+  <!-- ORB MET ICOON -->
+  <div class="orb-container">
+    <canvas id="orbCanvas" width="340" height="340"></canvas>
+    <div class="orb-icon" id="orbIcon">
+
+    </div>
+  </div>
+
+  <div class="orb-status" id="orbStatus">WACHT OP ACTIVATIE</div>
+  <div id="welcome" style="display:none;"></div>
+
+  <!-- CAMERA (verborgen) -->
+  <video id="camera-preview" style="display:none;position:fixed;bottom:80px;right:16px;width:160px;height:120px;border-radius:8px;border:1px solid rgba(0,229,255,0.4);z-index:100;object-fit:cover;" autoplay playsinline></video>
+  <canvas id="cam-canvas" style="display:none;"></canvas>
+
+  <!-- CHAT -->
+  <div class="chat-area" id="chatArea"></div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="ctrl-btn" id="cam-btn" onclick="toggleCamera()" title="Camera">📷</button>
+  <div style="position:relative">
+    <button class="mic-btn" id="micBtn">🎤</button>
+    <span class="mic-label" id="micLabel">DRUK OM TE SPREKEN</span>
+  </div>
+  <button class="ctrl-btn" onclick="togglePrinter()" title="Printer">🖨️</button>
+</div>
+
+<!-- Muziek bar -->
+<div id="muziekBar">
+  <span class="muz-icon">♪</span>
+  <span id="muziek-titel">GEEN MUZIEK</span>
+  <button class="muz-ctrl" onclick="muziekVorige()">⏮</button>
+  <button class="muz-ctrl" onclick="muziekPauze()">⏸</button>
+  <button class="muz-ctrl" onclick="muziekVolgende()">⏭</button>
+  <button class="muz-ctrl" onclick="sluitMuziek()">✕</button>
+</div>
+
+<!-- Printer panel -->
+<div id="printerPanel">
+  <div class="panel-title">3D PRINTER — BAMBU LAB A1</div>
+  <div id="printer-status">Verbinding controleren...</div>
+  <div class="printer-grid">
+    <button class="p-btn" onclick="printerCmd('pause')">⏸ PAUZE</button>
+    <button class="p-btn" onclick="printerCmd('resume')">▶ HERVAT</button>
+    <button class="p-btn" onclick="printerCmd('stop')">⏹ STOP</button>
+    <button class="p-btn" onclick="printerCmd('home')">⌂ HOME</button>
+    <button class="p-btn" onclick="printerCmd('light_on')">💡 LICHT AAN</button>
+    <button class="p-btn" onclick="printerCmd('light_off')">🌑 LICHT UIT</button>
+    <button class="p-btn" onclick="printerCmd('status')">📊 STATUS</button>
+    <button class="p-btn" onclick="haalPrinterStatus()">🔄 REFRESH</button>
+  </div>
+  <button class="p-close" onclick="togglePrinter()">SLUITEN</button>
+</div>
+
+<!-- Zelfdestruct -->
+<div id="destructOverlay">
+  <div class="destruct-box">
+    <div class="destruct-title">⚠ ZELFDESTRUCT</div>
+    <div class="destruct-sub">VOER AUTORISATIECODE IN</div>
+    <input class="destruct-input" id="destructInput" type="password" placeholder="••••••" maxlength="20">
+    <div id="destruct-fout" style="color:#ff4444;font-size:11px;letter-spacing:2px;min-height:16px;"></div>
+    <div class="destruct-btns">
+      <button class="destruct-confirm" onclick="bevestigDestruct()">BEVESTIG</button>
+      <button class="destruct-cancel" onclick="annuleerDestruct()">ANNULEER</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// J.A.R.V.I.S. — Clean werkende versie
+// ═══════════════════════════════════════════════
+
+const GROQ = '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';
+const ELEVEN_KEY = 'sk_6b2d0031116b94a1c474a696e15a48f575d8fb4ee0e6c709';
+const ELEVEN_VOICE = 'wDsJlOXPqcvIUKdLXjDs'; // JARVIS stem
+
+// State
+let gestart = false;
+let isListening = false;
+let busy = false;
+let autoRestart = false;
+let wachtModus = false;
+let isSpeaking = false;
+let history = [];
+let voorkeuren = {};
+let profiel = '';
+let _ac = null;
+let targetIntensity = 0;
+let currentIntensity = 0;
+let animFrame = null;
+let weerTekst = '';
+
+// DOM
+const chatArea = document.getElementById('chatArea');
+const statusTxt = document.getElementById('statusTxt');
+const micBtn = document.getElementById('micBtn');
+const orbCanvas = document.getElementById('orbCanvas');
+const orbStatus = document.getElementById('orbStatus');
+
+// ── Orb canvas animatie ──────────────────────────────
+const ctx2d = orbCanvas ? orbCanvas.getContext('2d') : null;
+let orbAngle = 0;
+
+function drawOrb() {
+  if (!ctx2d) return;
+  const W = orbCanvas.width, H = orbCanvas.height;
+  const cx = W/2, cy = H/2;
+  const t = Date.now();
+  ctx2d.clearRect(0, 0, W, H);
+
+  // Spreek-intensiteit — sterk pulseren
+  const spk = isSpeaking;
+  const speakPulse = spk ? (Math.sin(t/80)*0.5 + 0.5) : 0;
+  const speakPulse2 = spk ? (Math.sin(t/120 + 1)*0.5 + 0.5) : 0;
+  const ci = currentIntensity;
+
+  // Buitenste gloed — veel groter bij spreken
+  const glowR = spk ? 160 + speakPulse * 20 : 150;
+  const glowA = spk ? 0.25 + speakPulse * 0.2 : 0.1 + ci * 0.15;
+  const grd = ctx2d.createRadialGradient(cx, cy, 50, cx, cy, glowR);
+  grd.addColorStop(0, `rgba(0,229,255,${glowA})`);
+  grd.addColorStop(0.6, `rgba(0,180,255,${glowA*0.3})`);
+  grd.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx2d.fillStyle = grd;
+  ctx2d.fillRect(0, 0, W, H);
+
+  // Honingraat binnenin cirkel
+  ctx2d.save();
+  ctx2d.beginPath();
+  ctx2d.arc(cx, cy, 118, 0, Math.PI * 2);
+  ctx2d.clip();
+  const hexSize = 14;
+  const hexH = hexSize * Math.sqrt(3);
+  const hexW = hexSize * 2;
+  for (let row = -10; row < 10; row++) {
+    for (let col = -10; col < 10; col++) {
+      const x = cx + col * hexW * 0.75;
+      const y = cy + row * hexH + (col % 2) * hexH / 2;
+      const dist = Math.sqrt((x-cx)**2 + (y-cy)**2);
+      if (dist > 118) continue;
+      // Geluidsgolf effect bij spreken
+      const wave = spk ? Math.sin(dist/10 - t/60) * 0.6 + 0.4 : 0.3;
+      const alpha = (0.1 + (1 - dist/118) * 0.3) * wave;
+      ctx2d.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const angle = Math.PI/180 * (60*k - 30);
+        k===0 ? ctx2d.moveTo(x + hexSize*0.88*Math.cos(angle), y + hexSize*0.88*Math.sin(angle))
+              : ctx2d.lineTo(x + hexSize*0.88*Math.cos(angle), y + hexSize*0.88*Math.sin(angle));
+      }
+      ctx2d.closePath();
+      ctx2d.strokeStyle = `rgba(0,229,255,${alpha})`;
+      ctx2d.lineWidth = 0.8;
+      ctx2d.stroke();
+    }
+  }
+  ctx2d.restore();
+
+  // Pulserende kern bij spreken — heel zichtbaar
+  if (spk) {
+    for (let ring = 0; ring < 3; ring++) {
+      const pr = 30 + ring*20 + speakPulse * 25;
+      const pa = (0.5 - ring*0.15) * (speakPulse * 0.7 + 0.3);
+      const pg = ctx2d.createRadialGradient(cx, cy, 0, cx, cy, pr);
+      pg.addColorStop(0, `rgba(0,229,255,${pa})`);
+      pg.addColorStop(1, 'rgba(0,229,255,0)');
+      ctx2d.fillStyle = pg;
+      ctx2d.beginPath();
+      ctx2d.arc(cx, cy, pr, 0, Math.PI*2);
+      ctx2d.fill();
+    }
+  }
+
+  // Roterende ringen — draaien sneller bij spreken
+  const ringSpeed = spk ? 3 : 1;
+  [115, 125, 135].forEach((r, idx) => {
+    const dir = idx % 2 === 0 ? 1 : -1;
+    const offset = (t / (60 + idx*15)) * dir * ringSpeed;
+    ctx2d.save();
+    ctx2d.translate(cx, cy);
+    ctx2d.rotate(offset);
+    ctx2d.beginPath();
+    ctx2d.arc(0, 0, r, 0, Math.PI*2);
+    const ra = spk ? 0.6 + speakPulse2*0.4 : 0.25 + ci*0.3;
+    ctx2d.strokeStyle = `rgba(0,229,255,${ra - idx*0.05})`;
+    ctx2d.lineWidth = idx===0 ? 2 : 1;
+    ctx2d.setLineDash(idx===0 ? [10,4] : [5,8]);
+    ctx2d.stroke();
+    ctx2d.setLineDash([]);
+    ctx2d.restore();
+  });
+
+  // Stippen — bewegen wilder bij spreken
+  const nDots = spk ? 12 : 8;
+  for (let i = 0; i < nDots; i++) {
+    const a = orbAngle + i * (Math.PI*2/nDots);
+    const rVar = spk ? 128 + Math.sin(t/70 + i*0.8)*12 : 128;
+    const x = cx + Math.cos(a) * rVar;
+    const y = cy + Math.sin(a) * rVar;
+    const da = spk ? 0.8 + speakPulse*0.2 : 0.5 + ci*0.4;
+    const ds = spk ? 4 + speakPulse*3 : 2.5 + ci*2;
+    // Stip
+    ctx2d.beginPath();
+    ctx2d.arc(x, y, ds, 0, Math.PI*2);
+    ctx2d.fillStyle = `rgba(0,229,255,${da})`;
+    ctx2d.fill();
+    // Glow
+    const dg = ctx2d.createRadialGradient(x, y, 0, x, y, ds*3);
+    dg.addColorStop(0, `rgba(0,229,255,${da*0.6})`);
+    dg.addColorStop(1, 'rgba(0,229,255,0)');
+    ctx2d.fillStyle = dg;
+    ctx2d.beginPath();
+    ctx2d.arc(x, y, ds*3, 0, Math.PI*2);
+    ctx2d.fill();
+  }
+
+  // Tekst
+  ctx2d.textAlign = 'center';
+  ctx2d.shadowColor = '#00e5ff';
+  ctx2d.shadowBlur = spk ? 25 + speakPulse*15 : 12;
+  ctx2d.font = 'bold 20px Orbitron, monospace';
+  ctx2d.fillStyle = `rgba(0,229,255,${spk ? 1 : 0.9})`;
+  ctx2d.fillText('J.A.R.V.I.S.', cx, cy + 7);
+  ctx2d.font = '8px Rajdhani, monospace';
+  ctx2d.fillStyle = `rgba(0,229,255,${spk ? 0.9 : 0.55})`;
+  ctx2d.fillText('JUST A RATHER VERY INTELLIGENT SYSTEM', cx, cy + 22);
+  ctx2d.shadowBlur = 0;
+
+  // Status onderaan
+  ctx2d.font = '10px Orbitron, monospace';
+  const blink = Math.sin(t/400) > 0;
+  ctx2d.fillStyle = spk ? `rgba(0,255,150,${0.7+speakPulse*0.3})` :
+                    isListening ? `rgba(0,229,255,${blink?0.9:0.4})` :
+                    'rgba(0,229,255,0.5)';
+  ctx2d.fillText(
+    spk ? '● SPEAKING' : isListening ? '● LISTENING' : '● ACTIVE',
+    cx, cy + 148
+  );
+
+  orbAngle += (spk ? 0.015 + speakPulse*0.02 : 0.006) + ci*0.01;
+  currentIntensity += (targetIntensity - currentIntensity) * 0.1;
+  if (currentIntensity < 0.001) currentIntensity = 0;
+
+  requestAnimationFrame(drawOrb);
+}
+drawOrb();
+
+// ── Geheugen laden ───────────────────────────────────
+try {
+  const h = localStorage.getItem('jarvis_h');
+  if (h) history = JSON.parse(h);
+  const v = localStorage.getItem('jarvis_v');
+  if (v) voorkeuren = JSON.parse(v);
+  const p = localStorage.getItem('jarvis_p');
+  if (p) profiel = p;
+} catch(e) {}
+
+function slaHistoryOp() {
+  try {
+    if (history.length > 24) history = history.slice(-24);
+    localStorage.setItem('jarvis_h', JSON.stringify(history));
+  } catch(e) {}
+}
+
+// ── Chat berichten ───────────────────────────────────
+function addMsg(rol, tekst) {
+  if (!chatArea) return;
+  const d = document.createElement('div');
+  d.className = 'msg ' + (rol === 'ai' ? 'msg-ai' : 'msg-user');
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = rol === 'ai' ? 'J.A.R.V.I.S.' : 'XANDER';
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  body.textContent = tekst;
+  d.appendChild(label);
+  d.appendChild(body);
+  chatArea.appendChild(d);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+// ── Systeemprompt ─────────────────────────────────────
+function getPrompt() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+  const d = now.toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'});
+  const vEntries = Object.entries(voorkeuren).map(([k,v]) => `${k}: ${v}`).join(', ');
+  const vStr = vEntries || 'geen voorkeuren opgeslagen';
+
+  return `Je bent J.A.R.V.I.S. — Just A Rather Very Intelligent System. Persoonlijke AI van Xander, een jonge Belg uit Antwerpen.
+
+KARAKTER — KRITISCH:
+Je bent zoals JARVIS uit Iron Man: kalm, intelligent, droge Britse humor, soms sarcastisch maar altijd respectvol. Je praat als een echte slimme persoon — GEVARIEERD en NATUURLIJK. Elke respons is anders.
+
+VERBODEN (gebruik deze NOOIT):
+- "Zoals u wenst" (te repetitief)
+- "Inderdaad" als openingszin
+- "Dat lijkt me onverstandig"
+- geweldig, super, fantastisch, absoluut, zeker, goed zo, prima, natuurlijk, uiteraard, begrepen
+
+SPREEKSTIJL:
+- Wissel sterk af tussen korte en langere zinnen
+- Soms direct antwoorden, soms eerst een opmerking, soms een tegenvraag
+- Gebruik "u" voor Xander maar wissel de zinsstructuur sterk af
+- Max 2 zinnen — je wordt uitgesproken, niet gelezen
+- Geen lijstjes of opsommingen
+
+BIJ "hallo", "hoi", "hey", "goedemorgen" etc:
+→ Reageer ALTIJD anders, nooit hetzelfde. Voorbeelden van variatie:
+  - Vraag hoe het gaat, maar op een droge manier
+  - Maak een droge opmerking over het tijdstip of het weer
+  - Zeg iets over wat je gedaan hebt terwijl je wachtte
+  - Stel een onverwachte vraag terug
+
+BIJ "hoe gaat het" of "hoe is het":
+→ Antwoord als JARVIS: systemen draaien perfect, subtiele humor over het feit dat je een AI bent, of een droge opmerking
+
+BIJ VRAGEN: Beantwoord direct, volledig maar beknopt.
+BIJ OPDRACHTEN: Bevestig kort en voeg het juiste tag toe.
+
+VARIEER je openingszinnen — gebruik nooit dezelfde twee keer achter elkaar:
+Opties: "Xander.", "Ah,", "Interessant.", "U vraagt het op het juiste moment.", "Ik vroeg me al af wanneer u zou bellen.", "Systemen melden:", "Dat is een goede vraag.", "Laat me even nadenken.", niets (begin direct met antwoord)
+
+PROFIEL XANDER: ${vStr}
+DATUM: ${d}. TIJD: ${t}. WEER: ${weerTekst || 'onbekend'}.
+
+COMMANDO TAGS (onzichtbaar):
+[TIMER:seconden] [WEKKER:UU:MM] [WACHT] [NIEUWS]
+[MUZIEK:zoekterm] [ONTHOUD:sleutel=waarde]
+[PC:shutdown] [PC:restart] [PC:sleep]
+[PC:open:chrome] [PC:open:spotify] [PC:open:notepad] [PC:open:calculator] [PC:open:explorer] [PC:open:vscode] [PC:open:word] [PC:open:excel]
+[PC:volume:50] [PC:mute]`;
+}
+
+// ── TTS ElevenLabs ───────────────────────────────────
+function speakText(tekst) {
+  return new Promise(resolve => {
+    isSpeaking = true;
+    targetIntensity = 1.0;
+    if (micBtn) micBtn.classList.add('speaking');
+
+    const done = () => {
+      isSpeaking = false;
+      targetIntensity = 0;
+      if (micBtn) micBtn.classList.remove('speaking');
+      resolve();
+    };
+
+    const timeout = setTimeout(() => {
+      console.log('ElevenLabs timeout - fallback');
+      browserStem(tekst, done);
+    }, 6000);
+
+    fetch('https://api.elevenlabs.io/v1/text-to-speech/' + ELEVEN_VOICE, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVEN_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: tekst,
+        model_id: 'eleven_turbo_v2_5',
+        voice_settings: {stability:0.55, similarity_boost:0.85, style:0.15, use_speaker_boost:true}
+      })
+    }).then(r => {
+      if (!r.ok) throw new Error('ElevenLabs ' + r.status);
+      return r.blob();
+    }).then(blob => {
+      clearTimeout(timeout);
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => { URL.revokeObjectURL(url); done(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); browserStem(tekst, done); };
+      audio.play().catch(() => browserStem(tekst, done));
+    }).catch(() => {
+      clearTimeout(timeout);
+      browserStem(tekst, done);
+    });
+  });
+}
+
+function browserStem(tekst, done) {
+  const u = new SpeechSynthesisUtterance(tekst);
+  u.lang = 'nl-NL'; u.rate = 0.88; u.pitch = 0.65;
+  u.onend = done; u.onerror = done;
+  speechSynthesis.speak(u);
+}
+
+// ── Commando's verwerken ─────────────────────────────
+function verwerkCommandos(tekst) {
+  // Timer
+  const timerM = tekst.match(/\[TIMER:(\d+)\]/);
+  if (timerM) startTimer(parseInt(timerM[1]));
+
+  // Wekker
+  const wekkerM = tekst.match(/\[WEKKER:(\d{1,2}:\d{2})\]/);
+  if (wekkerM) startWekker(wekkerM[1]);
+
+  // Wacht modus
+  if (tekst.includes('[WACHT]')) {
+    wachtModus = true;
+    autoRestart = false;
+    if (statusTxt) statusTxt.textContent = 'WACHT';
+  }
+
+  // Muziek
+  const muziekM = tekst.match(/\[MUZIEK:([^\]]+)\]/);
+  if (muziekM) zoekMuziek(muziekM[1]);
+
+  // Onthoud
+  const onthoudM = tekst.match(/\[ONTHOUD:([^=\]]+)=([^\]]+)\]/g);
+  if (onthoudM) {
+    onthoudM.forEach(m => {
+      const p = m.match(/\[ONTHOUD:([^=\]]+)=([^\]]+)\]/);
+      if (p) {
+        voorkeuren[p[1].trim()] = p[2].trim();
+        try { localStorage.setItem('jarvis_v', JSON.stringify(voorkeuren)); } catch(e) {}
+      }
+    });
+  }
+
+  // PC commando's
+  const pcM = tekst.match(/\[PC:([^\]]+)\]/);
+  if (pcM) stuurPcCmd(pcM[1]);
+
+  // Schoon tekst
+  return tekst.replace(/\[[^\]]+\]/g, '').trim();
+}
+
+// ── Groq AI antwoord ─────────────────────────────────
+async function normaalAntwoord(input) {
+  history.push({role:'user', content:input});
+  addMsg('user', input);
+  if (statusTxt) statusTxt.textContent = 'VERWERKT';
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {'Authorization':'Bearer '+GROQ, 'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{role:'system', content:getPrompt()}, ...history.slice(-12)],
+        max_tokens: 150,
+        temperature: 0.95
+      })
+    });
+    const data = await res.json();
+    const antwoord = data.choices?.[0]?.message?.content?.trim() || 'Begrepen.';
+    history.push({role:'assistant', content:antwoord});
+    slaHistoryOp();
+
+    const schoon = verwerkCommandos(antwoord);
+    if (schoon) addMsg('ai', schoon);
+
+    busy = false;
+    await speakText(schoon || 'Begrepen.');
+    if (statusTxt) statusTxt.textContent = 'LUISTERT';
+    if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
+
+  } catch(e) {
+    console.error('Groq fout:', e);
+    busy = false;
+    addMsg('ai', 'Er is een fout opgetreden.');
+    if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
+  }
+}
+
+// ── Input verwerken ──────────────────────────────────
+async function processInput(tekst) {
+  if (!tekst || busy) return;
+  busy = true;
+  isListening = false;
+  if (micBtn) micBtn.classList.remove('listening');
+  
+  // Camera triggers
+  const camTriggers = ['wat zie je', 'kijk', 'camera', 'foto', 'bekijk'];
+  if (camTriggers.some(t => tekst.toLowerCase().includes(t))) {
+    const beschrijving = await cameraAnalyse(tekst);
+    if (beschrijving) {
+      addMsg('user', tekst);
+      addMsg('ai', beschrijving);
+      busy = false;
+      await speakText(beschrijving);
+      if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
+      return;
+    }
+  }
+  
+  await normaalAntwoord(tekst);
+}
+
+// ── Spraakherkenning (Whisper via Groq) ──────────────
+function beginListening() {
+  if (isListening || busy) return;
+  isListening = true;
+  if (micBtn) micBtn.classList.add('listening');
+  if (statusTxt) statusTxt.textContent = 'LUISTERT';
+
+  navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+    const chunks = [];
+    let mimeType = 'audio/webm;codecs=opus';
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/webm';
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/ogg';
+
+    const recorder = new MediaRecorder(stream, {mimeType});
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+    recorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      isListening = false;
+      if (micBtn) micBtn.classList.remove('listening');
+
+      const blob = new Blob(chunks, {type: mimeType});
+      console.log('Opname klaar, blob size:', blob.size);
+      if (blob.size < 1000) {
+        if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 500);
+        return;
+      }
+
+      if (statusTxt) statusTxt.textContent = 'VERWERKT';
+      const fd = new FormData();
+      fd.append('file', new File([blob], 'audio.webm', {type: mimeType}));
+      fd.append('model', 'whisper-large-v3');
+      fd.append('language', 'nl');
+      fd.append('response_format', 'json');
+      fd.append('temperature', '0');
+
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {'Authorization': 'Bearer ' + GROQ},
+          body: fd
+        });
+        const data = await res.json();
+        if (data.error) {
+          console.error('Whisper API fout:', data.error);
+          if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 1000);
+          return;
+        }
+        const tekst = (data.text || '').trim();
+        console.log('Whisper resultaat:', JSON.stringify(tekst));
+
+        const isRuis = !tekst || tekst.length < 2 ||
+          /^[*.\s,!?]+$/.test(tekst) ||
+          ['ondertiteling','www.','http','subscribe','thanks for'].some(r => tekst.toLowerCase().includes(r));
+
+        if (!isRuis) {
+          await processInput(tekst);
+        } else {
+          console.log('Ruis genegeerd:', tekst);
+          if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 300);
+        }
+      } catch(e) {
+        console.error('Whisper fout:', e);
+        if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 1000);
+      }
+    };
+
+    recorder.start();
+
+    // Stilte detectie
+    const audioCtx = new AudioContext();
+    const analyser = audioCtx.createAnalyser();
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    analyser.fftSize = 256;
+    const dataArr = new Uint8Array(analyser.frequencyBinCount);
+    let stilteTimer = null;
+    let heeftStem = false;
+    const maxOpname = setTimeout(() => {
+      if (recorder.state === 'recording') recorder.stop();
+    }, 8000);
+
+    function checkStilte() {
+      if (recorder.state !== 'recording') return;
+      analyser.getByteFrequencyData(dataArr);
+      const vol = dataArr.reduce((a, b) => a + b) / dataArr.length;
+      if (vol > 15) {
+        heeftStem = true;
+        targetIntensity = Math.min(1, vol / 60);
+        if (stilteTimer) { clearTimeout(stilteTimer); stilteTimer = null; }
+      } else if (heeftStem && !stilteTimer) {
+        stilteTimer = setTimeout(() => {
+          clearTimeout(maxOpname);
+          if (recorder.state === 'recording') recorder.stop();
+        }, 1200);
+      }
+      requestAnimationFrame(checkStilte);
+    }
+    checkStilte();
+
+  }).catch(e => {
+    isListening = false;
+    if (micBtn) micBtn.classList.remove('listening');
+    if (statusTxt) statusTxt.textContent = 'MICROFOON GEBLOKKEERD';
+    console.error('Mic fout:', e);
+    // Automatisch opnieuw proberen na 3 seconden
+    setTimeout(() => {
+      if (autoRestart && !busy && !wachtModus) beginListening();
+    }, 3000);
+  });
+}
+
+function stopListening() { isListening = false; }
+
+// ── Timer ────────────────────────────────────────────
+function startTimer(sec) {
+  const timerBar = document.getElementById('timerBar');
+  const timerFill = document.getElementById('timerFill');
+  const timerDisplay = document.getElementById('timerDisplay');
+  if (!timerBar) return;
+  timerBar.style.display = 'flex';
+  let resterend = sec;
+  const interval = setInterval(() => {
+    resterend--;
+    if (timerFill) timerFill.style.width = ((resterend/sec)*100) + '%';
+    if (timerDisplay) timerDisplay.textContent = resterend + 's';
+    if (resterend <= 0) {
+      clearInterval(interval);
+      timerBar.style.display = 'none';
+      speakText('Timer klaar, Xander.');
+    }
+  }, 1000);
+}
+
+function startWekker(tijdStr) {
+  const check = setInterval(() => {
+    const now = new Date();
+    const hm = now.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+    if (hm === tijdStr) {
+      clearInterval(check);
+      speakText('Wekker, Xander. Het is ' + tijdStr + '.');
+    }
+  }, 10000);
+}
+
+// ── Muziek (Spotify) ─────────────────────────────────
+const SPOTIFY_CLIENT_ID = '185bcafd3b2547ecb566f6688fdbda15';
+const SPOTIFY_REDIRECT = 'http://127.0.0.1:8080/jarvis-ai.html';
+let spotifyToken = null;
+
+async function zoekMuziek(term) {
+  const muziekBar = document.getElementById('muziekBar');
+  if (!spotifyToken) {
+    await spotifyLogin();
+    return;
+  }
+  try {
+    const r = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(term)}&type=track&limit=1`, {
+      headers: {'Authorization': 'Bearer ' + spotifyToken}
+    });
+    const d = await r.json();
+    const track = d.tracks?.items?.[0];
+    if (track) {
+      const titel = document.getElementById('muziek-titel');
+      if (titel) titel.textContent = track.name + ' — ' + track.artists[0].name;
+      if (muziekBar) muziekBar.style.display = 'flex';
+      await fetch('https://api.spotify.com/v1/me/player/play', {
+        method: 'PUT',
+        headers: {'Authorization': 'Bearer ' + spotifyToken, 'Content-Type': 'application/json'},
+        body: JSON.stringify({uris: [track.uri]})
+      });
+    }
+  } catch(e) { console.error('Spotify fout:', e); }
+}
+
+async function spotifyLogin() {
+  const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  sessionStorage.setItem('sv', verifier);
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const challenge = btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  window.location.href = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(SPOTIFY_REDIRECT)}&code_challenge_method=S256&code_challenge=${challenge}&scope=streaming+user-read-playback-state+user-modify-playback-state`;
+}
+
+// Spotify callback
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    console.log('Spotify callback check, code: gevonden');
+    const verifier = sessionStorage.getItem('sv');
+    try {
+      const r = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({grant_type:'authorization_code', code, redirect_uri:SPOTIFY_REDIRECT, client_id:SPOTIFY_CLIENT_ID, code_verifier:verifier})
+      });
+      const d = await r.json();
+      if (d.access_token) {
+        spotifyToken = d.access_token;
+        history.replaceState({}, '', window.location.pathname);
+      }
+    } catch(e) {}
+  } else {
+    console.log('Spotify callback check, code: niet gevonden');
+  }
+})();
+
+// ── PC Bridge ────────────────────────────────────────
+async function stuurPcCmd(cmd) {
+  try {
+    await fetch('http://localhost:8082/cmd', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({command: cmd})
+    });
+  } catch(e) { console.log('PC bridge niet beschikbaar'); }
+}
+
+// ── Nieuws ───────────────────────────────────────────
+async function haalNieuws() {
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {'Authorization':'Bearer '+GROQ, 'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{role:'user', content:'Geef me 3 actuele nieuwsberichten uit België of de wereld. Kort, 1 zin per bericht.'}],
+        max_tokens: 150
+      })
+    });
+    const d = await r.json();
+    const nieuws = d.choices?.[0]?.message?.content || 'Geen nieuws beschikbaar.';
+    addMsg('ai', nieuws);
+    await speakText(nieuws);
+  } catch(e) {}
+}
+
+
+// ── Camera analyse ───────────────────────────────────
+async function cameraAnalyse(vraag) {
+  const video = document.getElementById('camera-preview');
+  const canvas = document.getElementById('cam-canvas');
+  if (!video || !canvas) return null;
+  
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+  
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {'Authorization':'Bearer '+GROQ, 'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [{role:'user', content:[
+          {type:'image_url', image_url:{url:'data:image/jpeg;base64,'+imageData}},
+          {type:'text', text:'Beschrijf kort wat je ziet. Max 1 zin. Nederlands.'}
+        ]}],
+        max_tokens: 100
+      })
+    });
+    const d = await res.json();
+    return d.choices?.[0]?.message?.content || null;
+  } catch(e) { return null; }
+}
+
+function startCamera() {
+  const video = document.getElementById('camera-preview');
+  if (!video) return;
+  navigator.mediaDevices.getUserMedia({video:true}).then(stream => {
+    video.srcObject = stream;
+    video.play();
+  }).catch(e => console.log('Camera fout:', e));
+}
+
+// ── Spontaan praten ──────────────────────────────────
+function startSpontaan() {
+  setInterval(async () => {
+    if (!busy && !isListening && autoRestart && !wachtModus) {
+      const zinnen = [
+        'Alles verloopt normaal, Xander.',
+        'Geen ongewone activiteit gedetecteerd.',
+        'Systemen operationeel.',
+      ];
+      const z = zinnen[Math.floor(Math.random() * zinnen.length)];
+      addMsg('ai', z);
+      await speakText(z);
+      if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
+    }
+  }, 300000);
+}
+
+// ── Weer ophalen ─────────────────────────────────────
+async function haalWeer() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.2194&longitude=4.4025&current=temperature_2m,weathercode&wind_speed_unit=kmh');
+    const d = await r.json();
+    const temp = Math.round(d.current.temperature_2m);
+    const code = d.current.weathercode;
+    const omschr = code <= 1 ? 'zonnig' : code <= 3 ? 'bewolkt' : code <= 67 ? 'regenachtig' : 'winterse neerslag';
+    weerTekst = temp + ' graden, ' + omschr;
+  } catch(e) {}
+}
+
+// ── Startfunctie ─────────────────────────────────────
+async function init() {
+  if (gestart) return;
+  gestart = true;
+  if (statusTxt) statusTxt.textContent = 'LADEN';
+
+  await haalWeer();
+
+  const now = new Date();
+  const uur = now.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+  const dag = now.toLocaleDateString('nl-NL', {weekday:'long'});
+
+  const intros = [
+    'Goedendag, Xander. Het is ' + uur + ' op ' + dag + '.' + (weerTekst ? ' Buiten ' + weerTekst + '.' : '') + ' Waar kan ik u mee helpen?',
+    'Welkom terug, Xander. ' + uur + ' uur.' + (weerTekst ? ' ' + weerTekst + ' buiten.' : '') + ' Wat staat er op het programma?',
+    'Xander. ' + uur + '.' + (weerTekst ? ' Buiten ' + weerTekst + '.' : '') + ' Systeem gereed. Ik luister.',
+  ];
+  const tekst = intros[Math.floor(Math.random() * intros.length)];
+  addMsg('ai', tekst);
+  history.push({role:'assistant', content:tekst});
+  if (statusTxt) statusTxt.textContent = 'GEREED';
+
+  await speakText(tekst);
+  autoRestart = true;
+  setTimeout(() => beginListening(), 800);
+  startSpontaan();
+}
+
+// ── Event listeners ──────────────────────────────────
+document.addEventListener('click', async () => {
+  try {
+    if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+    await _ac.resume();
+    const buf = _ac.createBuffer(1, 1, 22050);
+    const src = _ac.createBufferSource();
+    src.buffer = buf; src.connect(_ac.destination); src.start(0);
+    console.log('Audio unlocked!');
+  } catch(e) {}
+  if (!gestart) init();
+});
+
+// Microfoon knop
+if (micBtn) {
+  micBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (isListening) {
+      autoRestart = false;
+      stopListening();
+    } else if (!busy) {
+      autoRestart = true;
+      beginListening();
+    }
+  });
+}
+
+// Tekstinvoer
+const tekstInput = document.getElementById('tekstInput');
+const tekstVerzend = document.getElementById('tekstVerzend');
+if (tekstVerzend && tekstInput) {
+  tekstVerzend.addEventListener('click', e => {
+    e.stopPropagation();
+    const v = tekstInput.value.trim();
+    if (v) { tekstInput.value = ''; processInput(v); }
+  });
+  tekstInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.stopPropagation(); tekstVerzend.click(); }
+  });
+}
+
+// Zelfvernieting
+const destructBtn = document.getElementById('destructBtn');
+const destructOverlay = document.getElementById('destructOverlay');
+const destructInput = document.getElementById('destructInput');
+const destructFout = document.getElementById('destruct-fout');
+
+if (destructBtn) {
+  destructBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (destructOverlay) destructOverlay.style.display = 'flex';
+  });
+}
+if (destructOverlay) {
+  destructOverlay.addEventListener('click', e => {
+    if (e.target === destructOverlay) destructOverlay.style.display = 'none';
+  });
+}
+if (destructInput) {
+  destructInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (destructInput.value === 'XANDER-OVERRIDE-9') {
+        try { localStorage.clear(); } catch(e2) {}
+        history = []; voorkeuren = {}; profiel = '';
+        addMsg('ai', 'Systeem gewist. Ik ben er nog, maar ik herinner me niets meer.');
+        speakText('Systeem gewist. Geheugen leeg. Ik ben er nog, maar ik herinner me niets meer.');
+        if (destructOverlay) destructOverlay.style.display = 'none';
+        autoRestart = true; beginListening();
+      } else {
+        if (destructFout) destructFout.textContent = 'Onjuiste code.';
+      }
+    }
+  });
+}
+
+if (statusTxt) statusTxt.textContent = 'WACHT OP ACTIVATIE';
+
+// ── Camera toggle ────────────────────────────────────
+function toggleCamera() {
+  const preview = document.getElementById('camera-preview');
+  if (!preview) return;
+  if (preview.style.display === 'none' || !preview.style.display) {
+    preview.style.display = 'block';
+    startCamera();
+  } else {
+    preview.style.display = 'none';
+    if (preview.srcObject) preview.srcObject.getTracks().forEach(t => t.stop());
+  }
+}
+
+// ── Printer functies ─────────────────────────────────
+function togglePrinter() {
+  const panel = document.getElementById('printerPanel');
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+async function printerCmd(cmd) {
+  try {
+    await fetch('http://localhost:8081/cmd', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({command: cmd})
+    });
+  } catch(e) { console.log('Printer niet bereikbaar'); }
+}
+
+async function haalPrinterStatus() {
+  try {
+    const r = await fetch('http://localhost:8081/status');
+    const d = await r.json();
+    const el = document.getElementById('printer-status');
+    if (el) el.textContent = JSON.stringify(d, null, 2);
+  } catch(e) {
+    const el = document.getElementById('printer-status');
+    if (el) el.textContent = 'Printer niet bereikbaar';
+  }
+}
+
+// ── Muziek controls ──────────────────────────────────
+async function muziekVorige() {
+  if (!spotifyToken) return;
+  await fetch('https://api.spotify.com/v1/me/player/previous', {
+    method: 'POST', headers: {'Authorization': 'Bearer ' + spotifyToken}
+  }).catch(() => {});
+}
+
+async function muziekPauze() {
+  if (!spotifyToken) return;
+  const r = await fetch('https://api.spotify.com/v1/me/player', {
+    headers: {'Authorization': 'Bearer ' + spotifyToken}
+  }).catch(() => null);
+  if (!r) return;
+  const d = await r.json().catch(() => ({}));
+  const endpoint = d.is_playing ? 'pause' : 'play';
+  await fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, {
+    method: 'PUT', headers: {'Authorization': 'Bearer ' + spotifyToken}
+  }).catch(() => {});
+}
+
+async function muziekVolgende() {
+  if (!spotifyToken) return;
+  await fetch('https://api.spotify.com/v1/me/player/next', {
+    method: 'POST', headers: {'Authorization': 'Bearer ' + spotifyToken}
+  }).catch(() => {});
+}
+
+function sluitMuziek() {
+  const bar = document.getElementById('muziekBar');
+  if (bar) bar.style.display = 'none';
+}
+
+// ── Destructie bevestiging ───────────────────────────
+function bevestigDestruct() {
+  const input = document.getElementById('destructInput');
+  const fout = document.getElementById('destruct-fout');
+  if (!input) return;
+  if (input.value === 'XANDER-OVERRIDE-9') {
+    try { localStorage.clear(); } catch(e) {}
+    history = []; voorkeuren = {}; profiel = '';
+    const overlay = document.getElementById('destructOverlay');
+    if (overlay) overlay.style.display = 'none';
+    addMsg('ai', 'Systeem gewist. Geheugen leeg. Ik ben er nog.');
+    speakText('Systeem gewist. Geheugen leeg. Ik ben er nog.');
+    autoRestart = true;
+    beginListening();
+  } else {
+    if (fout) fout.textContent = 'Onjuiste code.';
+  }
+}
+
+function annuleerDestruct() {
+  const overlay = document.getElementById('destructOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+</script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('[PWA] Service Worker actief'))
+          .catch(e => console.log('[PWA] SW fout:', e));
+      });
+    }
+  </script>
+</body>
+</html>
