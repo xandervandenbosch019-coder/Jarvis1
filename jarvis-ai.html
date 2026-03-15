@@ -2,13 +2,134 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="JARVIS">
 <title>J.A.R.V.I.S.</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
+
+
+#schaakPanel      { display: none !important; }
+#reminderPanel    { display: none !important; }
+#schaakPanel.open { display: block !important; }
+#reminderPanel.open { display: block !important; }
+
+/* ═══ ALLEEN ORB ZICHTBAAR ══════════════════════════ */
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000a12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Verberg alles behalve de orb container */
+.header          { display: none !important; }
+.corner-tl, .corner-tr, .corner-bl, .corner-br { display: none !important; }
+#timerBar        { display: none !important; }
+.hud-corner      { display: none !important; }
+.orb-status      { display: none !important; }
+.orb-icon        { display: none !important; }
+#welcome         { display: none !important; }
+#chatArea        { display: none !important; }
+.controls        { display: none !important; } /* micBtn via orb */
+#ctrlRail        { display: none !important; }
+#ctrlDivider     { display: none !important; }
+#menuBtn         { display: none !important; }
+#tekstWrap       { display: none !important; }
+#muziekBar       { display: none !important; }
+#printerPanel    { display: none !important; }
+.status-label    { display: none !important; }
+#sysStatus       { display: none !important; }
+#statusTxt       { display: none !important; }
+
+/* Chat: toon alleen als JARVIS praat of antwoord geeft */
+#chatArea.actief {
+  display: flex !important;
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(84vw, 520px);
+  max-height: 30vh;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 2px;
+  z-index: 10;
+  pointer-events: none;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 28%, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28%, black 100%);
+}
+
+/* Orb container centraal */
+.main {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+.orb-wrap {
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Mic knop — zichtbaar onder de bol */
+#micBtn {
+  position: fixed !important;
+  bottom: 24px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50% !important;
+  background: rgba(0,10,20,0.85) !important;
+  border: 1.5px solid rgba(0,229,255,0.35) !important;
+  color: rgba(0,229,255,0.7) !important;
+  font-size: 20px !important;
+  cursor: pointer !important;
+  z-index: 999 !important;
+  pointer-events: auto !important;
+  box-shadow: 0 0 16px rgba(0,229,255,0.1) !important;
+  transition: all 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+#micBtn:hover {
+  border-color: rgba(0,229,255,0.8) !important;
+  box-shadow: 0 0 24px rgba(0,229,255,0.25) !important;
+}
+#micBtn.listening {
+  border-color: rgba(0,229,255,1) !important;
+  box-shadow: 0 0 30px rgba(0,229,255,0.5) !important;
+  animation: micPuls 1s ease-in-out infinite !important;
+}
+#micBtn.speaking {
+  border-color: rgba(0,255,160,0.8) !important;
+  box-shadow: 0 0 24px rgba(0,255,160,0.3) !important;
+}
+@keyframes micPuls {
+  0%,100% { box-shadow: 0 0 20px rgba(0,229,255,0.4) !important; }
+  50%      { box-shadow: 0 0 40px rgba(0,229,255,0.8) !important; }
+}
+/* Mic label verbergen — niet nodig */
+.mic-label { display: none !important; }
+
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
   --c:#00e5ff;
@@ -46,6 +167,9 @@ body::before{
 }
 
 /* SCANLINES */
+#tekstInput::placeholder{color:rgba(0,229,255,0.3);}
+#tekstInput:focus{border-color:rgba(0,229,255,0.6);box-shadow:0 0 12px rgba(0,229,255,0.15);}
+
 body::after{
   content:'';
   position:fixed;
@@ -57,16 +181,16 @@ body::after{
 
 /* HOEK DECORATIES */
 .corner{position:fixed;width:60px;height:60px;z-index:10;}
-.corner-tl{top:20px;left:20px;border-top:2px solid var(--c2);border-left:2px solid var(--c2);}
-.corner-tr{top:20px;right:20px;border-top:2px solid var(--c2);border-right:2px solid var(--c2);}
-.corner-bl{bottom:20px;left:20px;border-bottom:2px solid var(--c2);border-left:2px solid var(--c2);}
-.corner-br{bottom:20px;right:20px;border-bottom:2px solid var(--c2);border-right:2px solid var(--c2);}
+.corner-tl{top:20px;left:20px;border-top:2px solid var(--c2);border-left:2px solid var(--c2);;display:none}
+.corner-tr{top:20px;right:20px;border-top:2px solid var(--c2);border-right:2px solid var(--c2);;display:none}
+.corner-bl{bottom:20px;left:20px;border-bottom:2px solid var(--c2);border-left:2px solid var(--c2);;display:none}
+.corner-br{bottom:20px;right:20px;border-bottom:2px solid var(--c2);border-right:2px solid var(--c2);;display:none}
 
 /* HEADER */
 .header{
   position:fixed;
   top:0;left:0;right:0;
-  display:flex;
+  display:none;
   justify-content:space-between;
   align-items:flex-start;
   padding:24px 80px;
@@ -84,22 +208,21 @@ body::after{
   position:relative;
   z-index:5;
   display:flex;
-  flex-direction:column;
   align-items:center;
-  gap:0;
+  justify-content:center;
   width:100%;
-  max-width:900px;
+  height:100vh;
 }
 
 /* JARVIS ICOON RING SYSTEEM */
 .orb-container{
   position:relative;
-  width:320px;
-  height:320px;
+  width:340px;
+  height:340px;
   display:flex;
   align-items:center;
   justify-content:center;
-  margin-bottom:20px;
+  flex-shrink:0;
 }
 
 /* Canvas voor animerende ringen */
@@ -108,6 +231,8 @@ body::after{
   inset:0;
   width:100%;
   height:100%;
+  cursor:pointer;
+  z-index:2;
 }
 
 /* Icoon in midden */
@@ -142,29 +267,52 @@ body::after{
 
 /* STATUS LABEL ONDER ORB */
 .orb-status{
+  position:absolute;
+  bottom:-28px;
+  left:50%;
+  transform:translateX(-50%);
   font-family:'Orbitron',sans-serif;
   font-size:9px;
   letter-spacing:4px;
   color:var(--c2);
-  margin-top:-10px;
-  margin-bottom:16px;
   text-align:center;
-  min-height:14px;
+  white-space:nowrap;
+  pointer-events:none;
 }
 
 /* CHAT BERICHTEN */
 .chat-area{
-  width:100%;
-  max-width:700px;
-  max-height:220px;
+  position:fixed;
+  bottom:120px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(84vw,520px);
+  max-height:30vh;
   overflow-y:auto;
   display:flex;
   flex-direction:column;
-  gap:8px;
-  padding:0 20px;
+  gap:4px;
+  padding:0 2px;
+  z-index:10;
+  pointer-events:none;
   scrollbar-width:none;
+  mask-image:linear-gradient(to bottom,transparent 0%,black 28%,black 100%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 28%,black 100%);
 }
 .chat-area::-webkit-scrollbar{display:none;}
+.chat-area .msg{ pointer-events:auto; }
+/* Fade alleen bovenaan — nieuwste berichten onderaan altijd zichtbaar */
+.chat-area::before{
+  content:'';
+  position:sticky;
+  top:0;
+  display:block;
+  height:28px;
+  background:linear-gradient(to bottom, var(--bg), transparent);
+  z-index:1;
+  pointer-events:none;
+  flex-shrink:0;
+}
 
 .msg{
   display:flex;
@@ -208,31 +356,116 @@ body::after{
   text-align:right;
 }
 
-/* CONTROLS ONDERAAN */
+/* ── TOOLBAR DOCK ──────────────────────────── */
 .controls{
   position:fixed;
-  bottom:30px;
+  bottom:6px;
   left:50%;
   transform:translateX(-50%);
   display:flex;
   align-items:center;
-  gap:16px;
+  gap:0;
   z-index:20;
 }
 
+/* Slide rail — verborgen knoppen */
+.ctrl-rail{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  overflow:hidden;
+  max-width:0;
+  opacity:0;
+  transition:max-width 0.45s cubic-bezier(0.4,0,0.2,1),
+             opacity 0.3s ease,
+             padding 0.3s ease;
+  padding:0;
+}
+.ctrl-rail.open{
+  max-width:320px;
+  opacity:1;
+  padding:0 14px;
+}
+
+/* Scheidingslijn tussen rail en mic */
+.ctrl-divider{
+  width:1px;height:36px;
+  background:rgba(0,229,255,0.2);
+  margin:0;
+  transition:opacity 0.3s;
+  opacity:0;
+}
+.ctrl-divider.open{ opacity:1; }
+
 .ctrl-btn{
-  width:48px;height:48px;
+  width:44px;height:44px;
   border-radius:50%;
-  border:1px solid rgba(0,229,255,0.3);
-  background:rgba(0,229,255,0.05);
-  color:var(--c2);
+  border:1px solid rgba(0,229,255,0.25);
+  background:rgba(0,10,18,0.7);
+  color:rgba(0,229,255,0.6);
   cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  font-size:18px;
+  font-size:17px;
   transition:all 0.2s;
-  backdrop-filter:blur(10px);
+  backdrop-filter:blur(16px);
+  flex-shrink:0;
+  position:relative;
 }
-.ctrl-btn:hover{border-color:var(--c);color:var(--c);box-shadow:0 0 15px rgba(0,229,255,0.3);}
+.ctrl-btn:hover{
+  border-color:var(--c);
+  color:var(--c);
+  background:rgba(0,229,255,0.08);
+  box-shadow:0 0 14px rgba(0,229,255,0.25);
+  transform:translateY(-2px);
+}
+.ctrl-btn.active{
+  border-color:var(--c);
+  color:var(--c);
+  background:rgba(0,229,255,0.1);
+  box-shadow:0 0 12px rgba(0,229,255,0.2);
+}
+
+/* Tooltip boven knop */
+.ctrl-btn::after{
+  content:attr(data-tip);
+  position:absolute;
+  bottom:calc(100% + 8px);
+  left:50%;transform:translateX(-50%);
+  background:rgba(0,10,18,0.95);
+  border:1px solid rgba(0,229,255,0.2);
+  color:var(--c);
+  font-family:'Orbitron',sans-serif;
+  font-size:8px;
+  letter-spacing:2px;
+  white-space:nowrap;
+  padding:4px 8px;
+  border-radius:3px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.2s;
+}
+.ctrl-btn:hover::after{ opacity:1; }
+
+/* Toggle knop links van mic */
+.ctrl-toggle{
+  width:36px;height:36px;
+  border-radius:50%;
+  border:1px solid rgba(0,229,255,0.2);
+  background:rgba(0,10,18,0.6);
+  color:rgba(0,229,255,0.4);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+  transition:all 0.3s;
+  backdrop-filter:blur(16px);
+  flex-shrink:0;
+}
+.ctrl-toggle:hover{ color:var(--c); border-color:rgba(0,229,255,0.4); }
+.ctrl-toggle.open{
+  color:var(--c);
+  border-color:rgba(0,229,255,0.5);
+  transform:rotate(180deg);
+}
 
 .mic-btn{
   width:68px;height:68px;
@@ -284,6 +517,54 @@ body::after{
   color:var(--c);z-index:100;display:none;
   background:rgba(1,10,15,0.8);padding:2px 12px;
 }
+
+/* HERINNERINGEN PANEL */
+#reminderPanel{
+  position:fixed;top:50%;right:20px;transform:translateY(-50%);
+  width:260px;max-height:70vh;overflow-y:auto;
+  background:rgba(1,10,15,0.95);border:1px solid rgba(0,229,255,0.3);
+  border-radius:8px;padding:16px;z-index:200;display:none;
+  backdrop-filter:blur(20px);
+}
+#reminderPanel::-webkit-scrollbar{width:3px;}
+#reminderPanel::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.3);border-radius:3px;}
+.reminder-titel{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:4px;color:var(--c);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.reminder-item{
+  background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);
+  border-radius:4px;padding:10px 12px;margin-bottom:8px;cursor:pointer;
+  transition:all 0.2s;position:relative;
+}
+.reminder-item:hover{border-color:rgba(0,229,255,0.4);background:rgba(0,229,255,0.08);}
+.reminder-item.verlopen{border-color:rgba(255,100,100,0.3);background:rgba(255,50,50,0.05);}
+.reminder-item.klaar{opacity:0.4;text-decoration:line-through;}
+.reminder-tekst{font-size:12px;letter-spacing:1px;color:var(--c);margin-bottom:4px;}
+.reminder-tijd{font-size:10px;color:rgba(0,229,255,0.5);letter-spacing:1px;}
+.reminder-delete{position:absolute;top:6px;right:8px;background:none;border:none;color:rgba(255,100,100,0.5);cursor:pointer;font-size:12px;padding:2px;}
+.reminder-delete:hover{color:rgba(255,100,100,0.9);}
+.reminder-badge{
+  position:fixed;top:12px;right:20px;
+  background:rgba(255,100,100,0.9);color:#fff;
+  font-family:'Orbitron',sans-serif;font-size:9px;
+  border-radius:50%;width:18px;height:18px;
+  display:none;align-items:center;justify-content:center;
+  z-index:201;cursor:pointer;
+}
+
+/* HERINNERING NOTIFICATIE */
+#reminderNotif{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  background:rgba(1,10,15,0.97);border:1px solid var(--c);
+  border-radius:8px;padding:16px 24px;z-index:300;display:none;
+  text-align:center;min-width:280px;
+  box-shadow:0 0 30px rgba(0,229,255,0.3);
+  animation:slideDown 0.3s ease;
+}
+@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.notif-label{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:4px;color:rgba(0,229,255,0.6);margin-bottom:8px;}
+.notif-tekst{font-size:14px;letter-spacing:2px;color:var(--c);margin-bottom:12px;}
+.notif-tijd{font-size:10px;color:rgba(0,229,255,0.5);margin-bottom:12px;}
+.notif-ok{background:transparent;border:1px solid var(--c);color:var(--c);font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:3px;padding:6px 20px;cursor:pointer;border-radius:3px;}
+.notif-ok:hover{background:rgba(0,229,255,0.1);}
 
 /* MUZIEK BAR */
 #muziekBar{
@@ -349,10 +630,15 @@ body::after{
 /* RESPONSIVE */
 @media(max-width:600px){
   .header{padding:16px 60px;}
-  .orb-container{width:220px;height:220px;}
+  .orb-container{width:260px;height:260px;}
   .orb-icon{width:85px;height:85px;}
-  .chat-area{max-height:180px;padding:0 12px;}
+  .chat-area{max-height:28vh;}
   .msg-bubble{font-size:12px;}
+}
+
+@keyframes knipperHint {
+  0%,100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
 }
 </style>
 </head>
@@ -385,51 +671,54 @@ body::after{
 <!-- Hoofd -->
 <div class="main">
 
-  <!-- ORB MET ICOON -->
+  <!-- ORB MET ICOON — alles in één container -->
   <div class="orb-container">
     <canvas id="orbCanvas" width="340" height="340"></canvas>
-    <div class="orb-icon" id="orbIcon">
-
-    </div>
+    <div class="orb-icon" id="orbIcon"></div>
+    <div class="orb-status" id="orbStatus">WACHT OP ACTIVATIE</div>
   </div>
 
-  <div class="orb-status" id="orbStatus">WACHT OP ACTIVATIE</div>
   <div id="welcome" style="display:none;"></div>
 
   <!-- CAMERA (verborgen) -->
   <video id="camera-preview" style="display:none;position:fixed;bottom:80px;right:16px;width:160px;height:120px;border-radius:8px;border:1px solid rgba(0,229,255,0.4);z-index:100;object-fit:cover;" autoplay playsinline></video>
   <canvas id="cam-canvas" style="display:none;"></canvas>
-
-  <!-- CHAT -->
-  <div class="chat-area" id="chatArea"></div>
 </div>
 
-<!-- iPhone START scherm -->
-<div id="startScherm" style="display:none;position:fixed;inset:0;background:#010a0f;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;">
-  <div style="font-family:'Orbitron',sans-serif;font-size:22px;letter-spacing:8px;color:#00e5ff;text-shadow:0 0 20px #00e5ff;">J.A.R.V.I.S.</div>
-  <div style="font-size:11px;letter-spacing:3px;color:rgba(0,229,255,0.5);">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
-  <button id="startKnop" style="margin-top:16px;padding:20px 48px;background:transparent;border:2px solid #00e5ff;color:#00e5ff;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:6px;border-radius:4px;cursor:pointer;box-shadow:0 0 30px rgba(0,229,255,0.3);-webkit-tap-highlight-color:transparent;">
-    ACTIVEER
-  </button>
-  <div style="font-size:10px;letter-spacing:2px;color:rgba(0,229,255,0.3);">TIK OM TE STARTEN</div>
-</div>
-
-<!-- iPhone START scherm -->
-<div id="startScherm" style="display:none;position:fixed;inset:0;background:#010a0f;z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:32px;">
-  <div style="font-family:'Orbitron',sans-serif;font-size:22px;letter-spacing:8px;color:#00e5ff;text-shadow:0 0 20px #00e5ff;">J.A.R.V.I.S.</div>
-  <div style="font-size:11px;letter-spacing:3px;color:rgba(0,229,255,0.5);">JUST A RATHER VERY INTELLIGENT SYSTEM</div>
-  <button id="startKnop" style="margin-top:16px;padding:20px 48px;background:transparent;border:2px solid #00e5ff;color:#00e5ff;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:6px;border-radius:4px;cursor:pointer;box-shadow:0 0 30px rgba(0,229,255,0.3);">ACTIVEER</button>
-  <div style="font-size:10px;letter-spacing:2px;color:rgba(0,229,255,0.3);">TIK OM TE STARTEN</div>
-</div>
+<!-- Chat overlay — zweeft boven alles -->
+<div class="chat-area" id="chatArea"></div>
 
 <!-- Controls -->
-<div class="controls">
-  <button class="ctrl-btn" id="cam-btn" onclick="toggleCamera()" title="Camera">📷</button>
-  <div style="position:relative">
-    <button class="mic-btn" id="micBtn">🎤</button>
-    <span class="mic-label" id="micLabel">DRUK OM TE SPREKEN</span>
+<div class="controls" id="mainControls">
+
+  <!-- Toggle knop — opent schuifbalk -->
+  <button class="ctrl-toggle" id="ctrlToggle" onclick="toggleRail()" title="Menu">&#9776;</button>
+
+  <!-- Schuifbalk met extra knoppen -->
+  <div class="ctrl-rail" id="ctrlRail">
+    <button class="ctrl-btn" id="cam-btn" onclick="toggleCamera();toggleRail()" data-tip="CAMERA">📷</button>
+    <button class="ctrl-btn" onclick="togglePrinter();toggleRail()" data-tip="PRINTER">🖨️</button>
+    <button class="ctrl-btn" id="reminderBtn" onclick="toggleReminders();toggleRail()" data-tip="HERINNERINGEN">🔔</button>
+    <button class="ctrl-btn" onclick="toggleTekstInput();toggleRail()" data-tip="TYPEN">⌨️</button>
+    <button class="ctrl-btn" onclick="window.open('https://open.spotify.com','_blank');toggleRail()" data-tip="SPOTIFY">🎵</button>
+    <button class="ctrl-btn" onclick="toggleSchaak();toggleRail()" data-tip="SCHAAK">♟</button>
+    <button class="ctrl-btn" id="destructBtn" data-tip="RESET">⚠️</button>
   </div>
-  <button class="ctrl-btn" onclick="togglePrinter()" title="Printer">🖨️</button>
+
+  <!-- Divider -->
+  <div class="ctrl-divider" id="ctrlDivider"></div>
+
+</div>
+
+<!-- Mic knop — BUITEN controls, altijd zichtbaar -->
+<button class="mic-btn" id="micBtn">🎤</button>
+
+<!-- Tekst invoer (verborgen, toggle via ⌨️ knop) -->
+<div id="tekstWrap" style="display:none;position:fixed;bottom:120px;left:50%;transform:translateX(-50%);align-items:center;gap:8px;z-index:20;width:min(88vw,460px);">
+  <input id="tekstInput" type="text" placeholder="TYP EEN BERICHT..." autocomplete="off"
+    style="flex:1;background:rgba(0,10,18,0.92);border:1px solid rgba(0,229,255,0.3);color:var(--c);font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;padding:10px 16px;border-radius:24px;outline:none;backdrop-filter:blur(16px);">
+  <button id="tekstVerzend"
+    style="width:42px;height:42px;border-radius:50%;border:1px solid var(--c);background:rgba(0,229,255,0.08);color:var(--c);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">&#10148;</button>
 </div>
 
 <!-- Muziek bar -->
@@ -459,11 +748,54 @@ body::after{
   <button class="p-close" onclick="togglePrinter()">SLUITEN</button>
 </div>
 
+<!-- Herinnering badge -->
+<div class="reminder-badge" id="reminderBadge" onclick="toggleReminders()">0</div>
+
+<!-- Herinneringen panel -->
+<div id="reminderPanel">
+  <div class="reminder-titel">
+    <span>HERINNERINGEN</span>
+    <button style="background:none;border:none;color:rgba(0,229,255,0.5);cursor:pointer;font-size:14px;" onclick="toggleReminders()">✕</button>
+  </div>
+  <div id="reminderLijst"></div>
+  <div style="margin-top:12px;font-size:10px;letter-spacing:1px;color:rgba(0,229,255,0.35);text-align:center;">
+    Zeg: "Herinner me om 15:30 aan vergadering"
+  </div>
+</div>
+
+<!-- Herinnering notificatie popup -->
+<div id="reminderNotif">
+  <div class="notif-label">⏰ HERINNERING</div>
+  <div class="notif-tekst" id="notifTekst">—</div>
+  <div class="notif-tijd" id="notifTijd">—</div>
+  <button class="notif-ok" onclick="sluitNotif()">BEGREPEN</button>
+</div>
+
+
+<!-- SCHAAK PANEL -->
+<div id="schaakPanel">
+  <div class="schaak-titel">
+    <span>♟ SCHAAK ANALYSE</span>
+    <button style="background:none;border:none;color:rgba(0,229,255,0.5);cursor:pointer;font-size:14px;" onclick="toggleSchaak()">✕</button>
+  </div>
+  <div class="schaak-label" id="schaakBeurt">AAN ZET: WIT</div>
+  <div id="schaakBord"></div>
+  <div id="schaakStatus">KLAAR</div>
+  <div id="schaakAdvies">Zeg "analyseer het bord" of klik op een stuk om te bewegen.</div>
+  <div style="font-size:9px;color:rgba(0,229,255,0.35);letter-spacing:1px;line-height:1.8;font-family:Orbitron,sans-serif;">
+    ● "scan het bord" — camera analyse<br>
+    ● "beste zet" — AI advies<br>
+    ● "nieuw schaakspel" — reset<br>
+    ● "wissel beurt" — andere speler
+  </div>
+</div>
+
 <!-- Zelfdestruct -->
 <div id="destructOverlay">
   <div class="destruct-box">
     <div class="destruct-title">⚠ ZELFDESTRUCT</div>
     <div class="destruct-sub">VOER AUTORISATIECODE IN</div>
+    <div style="font-size:9px;letter-spacing:2px;color:rgba(255,100,100,0.35);margin-bottom:12px;margin-top:-16px;">CODE: JARVIS</div>
     <input class="destruct-input" id="destructInput" type="password" placeholder="••••••" maxlength="20">
     <div id="destruct-fout" style="color:#ff4444;font-size:11px;letter-spacing:2px;min-height:16px;"></div>
     <div class="destruct-btns">
@@ -478,8 +810,8 @@ body::after{
 // J.A.R.V.I.S. — Clean werkende versie
 // ═══════════════════════════════════════════════
 
-const GROQ = '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';
-const ELEVEN_KEY = 'sk_6b2d0031116b94a1c474a696e15a48f575d8fb4ee0e6c709';
+const GROQ = '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';
+const ELEVEN_KEY = 'sk_12f39f7f7001386d9d82cbbe0dc1ec9a1b5d8dcf5b0adc1b';
 const ELEVEN_VOICE = 'wDsJlOXPqcvIUKdLXjDs'; // JARVIS stem
 
 // State
@@ -496,6 +828,19 @@ let _ac = null;
 let targetIntensity = 0;
 let currentIntensity = 0;
 let animFrame = null;
+let cameraStream = null;
+let objectTrackingActief = false;
+let objectTrackingInterval = null;
+let gevolgdObject = null;
+let objectOverlay = null;
+let spraakAnalyser = null;
+let spraakFreqData = null;
+let spraakAudioCtx = null;
+let huidigAudio = null;
+let audioAnalyser = null;
+let audioDataArray = null;
+let spreekVolume = 0;
+let herinneringen = [];
 let weerTekst = '';
 
 // DOM
@@ -503,6 +848,32 @@ const chatArea = document.getElementById('chatArea');
 const statusTxt = document.getElementById('statusTxt');
 const micBtn = document.getElementById('micBtn');
 const orbCanvas = document.getElementById('orbCanvas');
+// Dubbelklik op orb = tekst invoer tonen/verbergen
+if (orbCanvas) {
+  // Enkele klik = mic aan/uit
+  orbCanvas.addEventListener('click', () => {
+    if (isSpeaking || busy) {
+      onderbrekJarvis();
+      setTimeout(() => { autoRestart = true; beginListening(); }, 300);
+    } else if (isListening) {
+      autoRestart = false;
+      stopListening();
+    } else {
+      autoRestart = true;
+      beginListening();
+    }
+  });
+  // Dubbele klik = tekst invoer
+  orbCanvas.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    const tw = document.getElementById('tekstWrap');
+    if (tw) {
+      const open = tw.style.display !== 'none';
+      tw.style.display = open ? 'none' : 'flex';
+      if (!open) { const inp = document.getElementById('tekstInput'); if(inp) inp.focus(); }
+    }
+  });
+}
 const orbStatus = document.getElementById('orbStatus');
 
 // ── Orb canvas animatie ──────────────────────────────
@@ -510,32 +881,57 @@ const ctx2d = orbCanvas ? orbCanvas.getContext('2d') : null;
 let orbAngle = 0;
 
 function drawOrb() {
-  if (!ctx2d) return;
+  if (!ctx2d) { requestAnimationFrame(drawOrb); return; }
   const W = orbCanvas.width, H = orbCanvas.height;
   const cx = W/2, cy = H/2;
   const t = Date.now();
   ctx2d.clearRect(0, 0, W, H);
 
-  // Spreek-intensiteit — sterk pulseren
+  // ── Live audio amplitude ophalen ──────────────────
+  if (audioAnalyser && audioDataArray && isSpeaking) {
+    audioAnalyser.getByteFrequencyData(audioDataArray);
+    const len = audioDataArray.length;
+    // Laag (bas/klinkers) — 0-15% van bins
+    let laag = 0; for (let i=1; i<len*0.15; i++) laag += audioDataArray[i];
+    laag /= (len*0.15*255);
+    // Midden (consonanten/lettergrepen) — 15-55% van bins
+    let midden = 0; for (let i=Math.floor(len*0.15); i<len*0.55; i++) midden += audioDataArray[i];
+    midden /= (len*0.4*255);
+    // Gemiddeld gewogen
+    const raw = laag * 0.4 + midden * 0.6;
+    // Snel omhoog, langzamer omlaag — lettergreep detectie
+    if (raw > spreekVolume) {
+      spreekVolume += (raw - spreekVolume) * 0.55;
+    } else {
+      spreekVolume += (raw - spreekVolume) * 0.18;
+    }
+    spreekVolume = Math.max(0, Math.min(1, spreekVolume));
+  } else {
+    spreekVolume *= 0.82; // snel uitdoven
+  }
+
   const spk = isSpeaking;
-  const speakPulse = spk ? (Math.sin(t/80)*0.5 + 0.5) : 0;
-  const speakPulse2 = spk ? (Math.sin(t/120 + 1)*0.5 + 0.5) : 0;
+  const sv = spk ? Math.max(spreekVolume, 0.04) : 0;
   const ci = currentIntensity;
 
-  // Buitenste gloed — veel groter bij spreken
-  const glowR = spk ? 160 + speakPulse * 20 : 150;
-  const glowA = spk ? 0.25 + speakPulse * 0.2 : 0.1 + ci * 0.15;
-  const grd = ctx2d.createRadialGradient(cx, cy, 50, cx, cy, glowR);
+  // Fallback pulse als geen analyser (browserStem) — snelle sinus simuleert lettergrepen
+  const fallbackPulse = (spk && !audioAnalyser) ? Math.abs(Math.sin(t/80)) * 0.7 + 0.2 : 0;
+  const pulse = spk ? (sv * 0.9 + fallbackPulse * 0.1) : ci * 0.3;
+
+  // ── Buitenste gloed — groeit sterk met volume ─────
+  const glowR = 140 + pulse * 60;
+  const glowA = 0.06 + pulse * 0.38;
+  const grd = ctx2d.createRadialGradient(cx, cy, 30, cx, cy, glowR);
   grd.addColorStop(0, `rgba(0,229,255,${glowA})`);
-  grd.addColorStop(0.6, `rgba(0,180,255,${glowA*0.3})`);
+  grd.addColorStop(0.4, `rgba(0,180,255,${glowA*0.3})`);
   grd.addColorStop(1, 'rgba(0,229,255,0)');
   ctx2d.fillStyle = grd;
   ctx2d.fillRect(0, 0, W, H);
 
-  // Honingraat binnenin cirkel
+  // ── Honingraat — golf volgt lettergrepen ──────────
   ctx2d.save();
   ctx2d.beginPath();
-  ctx2d.arc(cx, cy, 118, 0, Math.PI * 2);
+  ctx2d.arc(cx, cy, 118, 0, Math.PI*2);
   ctx2d.clip();
   const hexSize = 14;
   const hexH = hexSize * Math.sqrt(3);
@@ -546,74 +942,133 @@ function drawOrb() {
       const y = cy + row * hexH + (col % 2) * hexH / 2;
       const dist = Math.sqrt((x-cx)**2 + (y-cy)**2);
       if (dist > 118) continue;
-      // Geluidsgolf effect bij spreken
-      const wave = spk ? Math.sin(dist/10 - t/60) * 0.6 + 0.4 : 0.3;
-      const alpha = (0.1 + (1 - dist/118) * 0.3) * wave;
+      // Golf snelheid en amplitude volgen sv direct
+      const waveSpeed = spk ? 55 + sv * 25 : 120;
+      const waveAmp  = spk ? 0.4 + sv * 0.7 : 0.2;
+      const wave = spk
+        ? Math.sin(dist/9 - t/waveSpeed) * waveAmp + (1-waveAmp)
+        : 0.25 + Math.sin(dist/18 - t/200) * 0.05;
+      const alpha = (0.08 + (1 - dist/118) * 0.28) * wave;
       ctx2d.beginPath();
       for (let k = 0; k < 6; k++) {
         const angle = Math.PI/180 * (60*k - 30);
-        k===0 ? ctx2d.moveTo(x + hexSize*0.88*Math.cos(angle), y + hexSize*0.88*Math.sin(angle))
-              : ctx2d.lineTo(x + hexSize*0.88*Math.cos(angle), y + hexSize*0.88*Math.sin(angle));
+        k===0
+          ? ctx2d.moveTo(x + hexSize*0.85*Math.cos(angle), y + hexSize*0.85*Math.sin(angle))
+          : ctx2d.lineTo(x + hexSize*0.85*Math.cos(angle), y + hexSize*0.85*Math.sin(angle));
       }
       ctx2d.closePath();
-      ctx2d.strokeStyle = `rgba(0,229,255,${alpha})`;
+      ctx2d.strokeStyle = `rgba(0,229,255,${Math.max(0,Math.min(1,alpha))})`;
       ctx2d.lineWidth = 0.8;
       ctx2d.stroke();
     }
   }
   ctx2d.restore();
 
-  // Pulserende kern bij spreken — heel zichtbaar
+  // ── Kern — puls per lettergreep ───────────────────
   if (spk) {
-    for (let ring = 0; ring < 3; ring++) {
-      const pr = 30 + ring*20 + speakPulse * 25;
-      const pa = (0.5 - ring*0.15) * (speakPulse * 0.7 + 0.3);
+    const kernSlagen = [0, 1, 2];
+    kernSlagen.forEach((ring, i) => {
+      // Elke ring reageert op een iets andere frequentieband
+      const bandOffset = i * 0.12;
+      const ringPulse = Math.max(0, sv - bandOffset) / (1 - bandOffset + 0.01);
+      const pr = 18 + i*18 + ringPulse * 30;
+      const pa = (0.45 - i*0.12) * ringPulse;
+      if (pa < 0.01) return;
       const pg = ctx2d.createRadialGradient(cx, cy, 0, cx, cy, pr);
-      pg.addColorStop(0, `rgba(0,229,255,${pa})`);
+      pg.addColorStop(0, `rgba(0,240,255,${pa})`);
+      pg.addColorStop(0.6, `rgba(0,200,255,${pa*0.4})`);
       pg.addColorStop(1, 'rgba(0,229,255,0)');
       ctx2d.fillStyle = pg;
       ctx2d.beginPath();
       ctx2d.arc(cx, cy, pr, 0, Math.PI*2);
       ctx2d.fill();
-    }
+    });
   }
 
-  // Roterende ringen — draaien sneller bij spreken
-  const ringSpeed = spk ? 3 : 1;
-  [115, 125, 135].forEach((r, idx) => {
+  // ── Ringen — draaien sneller bij harder praten ────
+  const ringBase = spk ? 1.8 + sv * 4 : 0.8 + ci * 1.2;
+  [115, 124, 133].forEach((r, idx) => {
     const dir = idx % 2 === 0 ? 1 : -1;
-    const offset = (t / (60 + idx*15)) * dir * ringSpeed;
+    const speed = ringBase * (1 + idx * 0.2);
+    const offset = (t / (55 + idx*12)) * dir * speed;
     ctx2d.save();
     ctx2d.translate(cx, cy);
     ctx2d.rotate(offset);
     ctx2d.beginPath();
     ctx2d.arc(0, 0, r, 0, Math.PI*2);
-    const ra = spk ? 0.6 + speakPulse2*0.4 : 0.25 + ci*0.3;
-    ctx2d.strokeStyle = `rgba(0,229,255,${ra - idx*0.05})`;
+    const ra = spk ? 0.3 + sv * 0.7 : 0.2 + ci*0.25;
+    ctx2d.strokeStyle = `rgba(0,229,255,${Math.min(1, ra - idx*0.04)})`;
     ctx2d.lineWidth = idx===0 ? 2 : 1;
-    ctx2d.setLineDash(idx===0 ? [10,4] : [5,8]);
+    ctx2d.setLineDash(idx===0 ? [8,4] : [4,7]);
     ctx2d.stroke();
     ctx2d.setLineDash([]);
     ctx2d.restore();
   });
 
-  // Stippen — bewegen wilder bij spreken
+  // ── Audio golfslagen (bars) rond de cirkel bij spreken ─
+  if (spk && audioAnalyser && audioDataArray) {
+    const barCount = 80;
+    const angleStep = (Math.PI * 2) / barCount;
+    const baseR = 136;
+    ctx2d.save();
+    ctx2d.translate(cx, cy);
+    for (let i = 0; i < barCount; i++) {
+      const binIdx = Math.floor(i / barCount * audioDataArray.length * 0.7);
+      const rawBar = audioDataArray[binIdx] / 255;
+      const barH = rawBar * 48 + sv * 8; // hogere bars bij meer volume
+      if (barH < 1.5) continue;
+      const angle = i * angleStep - Math.PI/2;
+      const x1 = Math.cos(angle) * baseR;
+      const y1 = Math.sin(angle) * baseR;
+      const x2 = Math.cos(angle) * (baseR + barH);
+      const y2 = Math.sin(angle) * (baseR + barH);
+      const alpha = 0.35 + rawBar * 0.65;
+      ctx2d.beginPath();
+      ctx2d.moveTo(x1, y1);
+      ctx2d.lineTo(x2, y2);
+      ctx2d.strokeStyle = `rgba(0,229,255,${alpha})`;
+      ctx2d.lineWidth = 2.2;
+      ctx2d.lineCap = 'round';
+      ctx2d.stroke();
+    }
+    ctx2d.restore();
+  } else if (spk && !audioAnalyser) {
+    // Fallback: gesimuleerde bars op basis van pulse
+    const barCount = 48;
+    const angleStep = (Math.PI * 2) / barCount;
+    const baseR = 136;
+    ctx2d.save();
+    ctx2d.translate(cx, cy);
+    for (let i = 0; i < barCount; i++) {
+      const angle = i * angleStep - Math.PI/2;
+      const barH = fallbackPulse * 32 * (0.4 + 0.6 * Math.abs(Math.sin(i * 0.4 + t/120)));
+      if (barH < 2) continue;
+      ctx2d.beginPath();
+      ctx2d.moveTo(Math.cos(angle)*baseR, Math.sin(angle)*baseR);
+      ctx2d.lineTo(Math.cos(angle)*(baseR+barH), Math.sin(angle)*(baseR+barH));
+      ctx2d.strokeStyle = `rgba(0,229,255,${0.3 + fallbackPulse*0.5})`;
+      ctx2d.lineWidth = 2;
+      ctx2d.lineCap = 'round';
+      ctx2d.stroke();
+    }
+    ctx2d.restore();
+  }
+
+  // ── Stippen op buitenring ─────────────────────────
   const nDots = spk ? 12 : 8;
   for (let i = 0; i < nDots; i++) {
     const a = orbAngle + i * (Math.PI*2/nDots);
-    const rVar = spk ? 128 + Math.sin(t/70 + i*0.8)*12 : 128;
+    const rVar = spk ? 128 + sv * 14 * Math.sin(t/60 + i*1.1) : 128;
     const x = cx + Math.cos(a) * rVar;
     const y = cy + Math.sin(a) * rVar;
-    const da = spk ? 0.8 + speakPulse*0.2 : 0.5 + ci*0.4;
-    const ds = spk ? 4 + speakPulse*3 : 2.5 + ci*2;
-    // Stip
+    const da = spk ? 0.5 + sv*0.5 : 0.4 + ci*0.4;
+    const ds = spk ? 2.5 + sv * 3.5 : 2 + ci*2;
     ctx2d.beginPath();
     ctx2d.arc(x, y, ds, 0, Math.PI*2);
     ctx2d.fillStyle = `rgba(0,229,255,${da})`;
     ctx2d.fill();
-    // Glow
     const dg = ctx2d.createRadialGradient(x, y, 0, x, y, ds*3);
-    dg.addColorStop(0, `rgba(0,229,255,${da*0.6})`);
+    dg.addColorStop(0, `rgba(0,229,255,${da*0.5})`);
     dg.addColorStop(1, 'rgba(0,229,255,0)');
     ctx2d.fillStyle = dg;
     ctx2d.beginPath();
@@ -621,36 +1076,38 @@ function drawOrb() {
     ctx2d.fill();
   }
 
-  // Tekst
+  // ── Tekst ─────────────────────────────────────────
   ctx2d.textAlign = 'center';
   ctx2d.shadowColor = '#00e5ff';
-  ctx2d.shadowBlur = spk ? 25 + speakPulse*15 : 12;
+  ctx2d.shadowBlur = spk ? 15 + sv*20 : 10;
   ctx2d.font = 'bold 20px Orbitron, monospace';
-  ctx2d.fillStyle = `rgba(0,229,255,${spk ? 1 : 0.9})`;
+  ctx2d.fillStyle = `rgba(0,229,255,${spk ? 0.8 + sv*0.2 : 0.85})`;
   ctx2d.fillText('J.A.R.V.I.S.', cx, cy + 7);
   ctx2d.font = '8px Rajdhani, monospace';
-  ctx2d.fillStyle = `rgba(0,229,255,${spk ? 0.9 : 0.55})`;
+  ctx2d.fillStyle = `rgba(0,229,255,${spk ? 0.6 + sv*0.3 : 0.45})`;
   ctx2d.fillText('JUST A RATHER VERY INTELLIGENT SYSTEM', cx, cy + 22);
   ctx2d.shadowBlur = 0;
 
-  // Status onderaan
+  // Status
   ctx2d.font = '10px Orbitron, monospace';
-  const blink = Math.sin(t/400) > 0;
-  ctx2d.fillStyle = spk ? `rgba(0,255,150,${0.7+speakPulse*0.3})` :
-                    isListening ? `rgba(0,229,255,${blink?0.9:0.4})` :
-                    'rgba(0,229,255,0.5)';
+  const blink = Math.sin(t/500) > 0;
+  ctx2d.fillStyle = spk
+    ? `rgba(0,255,160,${0.6 + sv*0.4})`
+    : isListening ? `rgba(0,229,255,${blink?0.85:0.35})` : 'rgba(0,229,255,0.4)';
   ctx2d.fillText(
     spk ? '● SPEAKING' : isListening ? '● LISTENING' : '● ACTIVE',
     cx, cy + 148
   );
 
-  orbAngle += (spk ? 0.015 + speakPulse*0.02 : 0.006) + ci*0.01;
+  // Roteer langzamer in rust, sneller bij volume
+  orbAngle += (spk ? 0.008 + sv * 0.025 : 0.004) + ci * 0.008;
   currentIntensity += (targetIntensity - currentIntensity) * 0.1;
   if (currentIntensity < 0.001) currentIntensity = 0;
 
   requestAnimationFrame(drawOrb);
 }
 drawOrb();
+
 
 // ── Geheugen laden ───────────────────────────────────
 try {
@@ -664,13 +1121,26 @@ try {
 
 function slaHistoryOp() {
   try {
-    if (history.length > 24) history = history.slice(-24);
+    if (history.length > 60) history = history.slice(-60);
     localStorage.setItem('jarvis_h', JSON.stringify(history));
+    const vd = new Date().toISOString().split('T')[0];
+    let log = {}; try { log = JSON.parse(localStorage.getItem('jarvis_log') || '{}'); } catch(e) {}
+    const dk = Object.keys(log).sort(); while (dk.length > 7) { delete log[dk.shift()]; }
+    if (!log[vd]) log[vd] = []; localStorage.setItem('jarvis_log', JSON.stringify(log));
   } catch(e) {}
 }
 
 // ── Chat berichten ───────────────────────────────────
 function addMsg(rol, tekst) {
+  const ca = document.getElementById('chatArea');
+  if (ca) {
+    ca.classList.add('actief');
+    clearTimeout(window._chatHideTimer);
+    // Verberg chat na 8 seconden stilte
+    window._chatHideTimer = setTimeout(() => {
+      if (!isSpeaking && !busy) ca.classList.remove('actief');
+    }, 8000);
+  }
   if (!chatArea) return;
   const d = document.createElement('div');
   d.className = 'msg ' + (rol === 'ai' ? 'msg-ai' : 'msg-user');
@@ -733,10 +1203,39 @@ DATUM: ${d}. TIJD: ${t}. WEER: ${weerTekst || 'onbekend'}.
 
 COMMANDO TAGS (onzichtbaar):
 [TIMER:seconden] [WEKKER:UU:MM] [WACHT] [NIEUWS]
-[MUZIEK:zoekterm] [ONTHOUD:sleutel=waarde]
-[PC:shutdown] [PC:restart] [PC:sleep]
+[HERINNER:UU:MM:omschrijving] — stel een herinnering in op exact tijdstip
+[HERINNER:+minuten:omschrijving] — herinnering over X minuten (bv. +30 = over 30 min)
+[MUZIEK:zoekterm] — opent Spotify app direct, gebruik [MUZIEK:x] voor playlist X [ONTHOUD:sleutel=waarde]
+[PC:shutdown] [PC:restart] [PC:sleep] [PC:lock]
 [PC:open:chrome] [PC:open:spotify] [PC:open:notepad] [PC:open:calculator] [PC:open:explorer] [PC:open:vscode] [PC:open:word] [PC:open:excel]
-[PC:volume:50] [PC:mute]`;
+[PC:volume:50] [PC:mute] [PC:screenshot]
+
+BESTANDSBEHEER (via PC bridge):
+[BESTAND:MAAK:pad/bestandsnaam.txt:inhoud] — maak een bestand aan
+[BESTAND:MAP:pad] — maak een map aan
+[BESTAND:LEES:pad/bestandsnaam.txt] — lees een bestand
+[BESTAND:LIJST:pad] — lijst bestanden in map
+[BESTAND:VERWIJDER:pad/bestandsnaam.txt] — verwijder bestand
+
+Voorbeeld: "maak een notitie meeting.txt in mijn documenten" →
+[BESTAND:MAAK:C:/Users/2200054/Documents/meeting.txt:inhoud hier]
+
+Standaard mappen: Desktop=C:/Users/2200054/Desktop, Documenten=C:/Users/2200054/Documents, Downloads=C:/Users/2200054/Downloads
+
+AI SAMENWERKING:
+- [AI_VRAAG:vraag] — raadpleeg een tweede AI voor complexe vragen
+- [GEMINI:vraag] — vraag specifiek aan Google Gemini
+- [ONTHOUD:sleutel=waarde] — sla iets permanent op over Xander
+- [VERGEET:sleutel] — verwijder iets uit geheugen
+
+LANGETERMIJN GEHEUGEN OVER XANDER:
+\${getGeheugenTekst() || 'nog niets onthouden'}
+
+ACTUELE KENNIS:
+Jouw trainingsdata loopt tot vroeg 2024. Voor ALLES wat nieuwer of actueel kan zijn gebruik je [ZOEK:zoekterm].
+Gebruik [ZOEK:] bij: nieuws, sport, weer, crypto, films, muziek, politiek, wetenschap, technologie, evenementen, prijzen, personen, bedrijven.
+Schrijf de zoekterm in het Engels voor betere resultaten.
+Gebruik het resultaat om een volledig antwoord te geven — zeg NOOIT "mijn kennis loopt tot..."`;
 }
 
 // ── TTS ElevenLabs ───────────────────────────────────
@@ -746,64 +1245,158 @@ function speakText(tekst) {
     targetIntensity = 1.0;
     if (micBtn) micBtn.classList.add('speaking');
 
+    let gedaan = false;
     const done = () => {
+      if (gedaan) return;
+      gedaan = true;
+      console.log('🔊 speakText done() aangeroepen');
       isSpeaking = false;
+      busy = false;
       targetIntensity = 0;
       if (micBtn) micBtn.classList.remove('speaking');
       resolve();
     };
 
-    const timeout = setTimeout(() => {
-      console.log('ElevenLabs timeout - fallback');
-      browserStem(tekst, done);
-    }, 6000);
+    // Absoluut veiligheidsnet
+    const absTimer = setTimeout(done, 25000);
 
-    fetch('https://api.elevenlabs.io/v1/text-to-speech/' + ELEVEN_VOICE, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': ELEVEN_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        text: tekst,
-        model_id: 'eleven_turbo_v2_5',
-        voice_settings: {stability:0.55, similarity_boost:0.85, style:0.15, use_speaker_boost:true}
-      })
-    }).then(r => {
-      if (!r.ok) throw new Error('ElevenLabs ' + r.status);
-      return r.blob();
-    }).then(blob => {
-      clearTimeout(timeout);
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.playsInline = true;
-      audio.setAttribute('playsinline', '');
-      audio.setAttribute('webkit-playsinline', '');
-      audio.onended = () => { URL.revokeObjectURL(url); done(); };
-      audio.onerror = () => { URL.revokeObjectURL(url); browserStem(tekst, done); };
-      // iOS: resume AudioContext voor afspelen
-      if (_ac && _ac.state === 'suspended') {
-        _ac.resume().then(() => audio.play().catch(() => browserStem(tekst, done)));
-      } else {
-        audio.play().catch(() => browserStem(tekst, done));
+    // Probeer ElevenLabs, fallback naar browser
+    const stemIDs = ['QV8AJ5AyfbQN6t2vnnzJ'];
+    let stemIdx = 0;
+
+    function probeerVolgende() {
+      if (stemIdx >= stemIDs.length) {
+        // Alle ElevenLabs opties geprobeerd — browser spraak
+        clearTimeout(absTimer);
+        browserStem(tekst, done);
+        return;
       }
-    }).catch(() => {
-      clearTimeout(timeout);
-      browserStem(tekst, done);
-    });
+      const sid = stemIDs[stemIdx++];
+      fetch('https://api.elevenlabs.io/v1/text-to-speech/' + sid, {
+        method: 'POST',
+        headers: {'xi-api-key': ELEVEN_KEY, 'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          text: tekst,
+          model_id: 'eleven_turbo_v2_5',
+          voice_settings: {stability:0.75, similarity_boost:0.95, style:0.0, use_speaker_boost:true}
+        })
+      }).then(r => {
+        if (!r.ok) { probeerVolgende(); return; }
+        return r.blob();
+      }).then(blob => {
+        if (!blob) return;
+        clearTimeout(absTimer);
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.crossOrigin = 'anonymous';
+        huidigAudio = audio;
+        // Koppel analyser
+        try {
+          if (!spraakAudioCtx) spraakAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (spraakAudioCtx.state === 'suspended') spraakAudioCtx.resume();
+          const src = spraakAudioCtx.createMediaElementSource(audio);
+          spraakAnalyser = spraakAudioCtx.createAnalyser();
+          spraakAnalyser.fftSize = 512;
+          spraakAnalyser.smoothingTimeConstant = 0.5;
+          spraakFreqData = new Uint8Array(spraakAnalyser.frequencyBinCount);
+          src.connect(spraakAnalyser);
+          spraakAnalyser.connect(spraakAudioCtx.destination);
+          audioAnalyser = spraakAnalyser;
+          audioDataArray = spraakFreqData;
+        } catch(e) {}
+        audio.onended = () => {
+          huidigAudio = null; spraakAnalyser = null; spraakFreqData = null;
+          audioAnalyser = null; audioDataArray = null;
+          URL.revokeObjectURL(url);
+          done();
+        };
+        audio.onerror = () => {
+          huidigAudio = null; URL.revokeObjectURL(url);
+          browserStem(tekst, done);
+        };
+        audio.play().catch(() => {
+          huidigAudio = null;
+          browserStem(tekst, done);
+        });
+      }).catch(() => probeerVolgende());
+    }
+
+    probeerVolgende();
   });
 }
 
+
 function browserStem(tekst, done) {
-  // iOS Safari fix: cancel eventuele lopende spraak eerst
+  // Probeer eerst ElevenLabs opnieuw voor consistente stem
+  fetch('https://api.elevenlabs.io/v1/text-to-speech/' + stemIDs[0], {
+    method: 'POST',
+    headers: {'xi-api-key': ELEVEN_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({text: tekst, model_id: 'eleven_turbo_v2_5',
+      voice_settings: {stability:0.75, similarity_boost:0.95, style:0.0, use_speaker_boost:true}})
+  }).then(r => r.ok ? r.blob() : null).then(blob => {
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      huidigAudio = audio;
+      audio.onended = () => { huidigAudio = null; URL.revokeObjectURL(url); done(); };
+      audio.onerror = () => { huidigAudio = null; URL.revokeObjectURL(url); _browserStemFallback(tekst, done); };
+      audio.play().catch(() => _browserStemFallback(tekst, done));
+      return;
+    }
+    _browserStemFallback(tekst, done);
+  }).catch(() => _browserStemFallback(tekst, done));
+}
+
+function _browserStemFallback(tekst, done) {
+  try { speechSynthesis.cancel(); } catch(e) {}
+  setTimeout(() => {   // kleine pauze na cancel
+    const u = new SpeechSynthesisUtterance(tekst);
+    const stemmen = window.speechSynthesis.getVoices();
+    const voorkeur = ['Google UK English Male','Microsoft George','Daniel','Arthur'];
+    let gekozenStem = null;
+    for (const naam of voorkeur) {
+      gekozenStem = stemmen.find(v => v.name.includes(naam));
+      if (gekozenStem) break;
+    }
+    if (gekozenStem) u.voice = gekozenStem;
+    u.lang = 'en-GB';
+    u.rate = 0.85;
+    u.pitch = 0.6;
+    u.volume = 1;
+    let klaar = false;
+    // Max 12s wachten — daarna gewoon door
+    const zekerheidTimer = setTimeout(() => {
+      if (!klaar) { klaar = true; done(); }
+    }, 12000);
+  u.onend = () => { if (!klaar) { klaar = true; clearTimeout(zekerheidTimer); done(); } };
+  u.onerror = () => { if (!klaar) { klaar = true; clearTimeout(zekerheidTimer); done(); } };
+  try {
+      speechSynthesis.speak(u);
+    } catch(e) {
+      if (!klaar) { klaar = true; clearTimeout(zekerheidTimer); done(); }
+    }
+  }, 100); // wacht na cancel
+}
+
+
+// Huidige audio bijhouden voor onderbreking (al gedeclareerd bovenaan)
+
+function onderbrekJarvis() {
+  // Stop ElevenLabs audio
+  if (huidigAudio) {
+    huidigAudio.pause();
+    huidigAudio.src = '';
+    huidigAudio = null;
+  }
+  // Stop browser spraak
   if (speechSynthesis.speaking) speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(tekst);
-  u.lang = 'nl-NL'; u.rate = 0.88; u.pitch = 0.65;
-  u.volume = 1.0;
-  u.onend = done;
-  u.onerror = () => { console.log('[TTS] Spraak fout, toch doorgaan'); done(); };
-  // iOS fix: kleine vertraging voor betrouwbaarder afspelen
-  setTimeout(() => speechSynthesis.speak(u), 100);
+  // Reset state
+  isSpeaking = false;
+  busy = false;
+  targetIntensity = 0.15;
+  if (micBtn) micBtn.classList.remove('speaking');
+  if (statusTxt) statusTxt.textContent = 'ONDERBROKEN';
+  console.log('[JARVIS] Onderbroken door Xander');
 }
 
 // ── Commando's verwerken ─────────────────────────────
@@ -843,9 +1436,93 @@ function verwerkCommandos(tekst) {
   const pcM = tekst.match(/\[PC:([^\]]+)\]/);
   if (pcM) stuurPcCmd(pcM[1]);
 
+  // Bestandsbeheer commando's
+  const bestandM = tekst.match(/\[BESTAND:([^:]+):([^:\]]+)(?::([^\]]+))?\]/);
+  if (bestandM) stuurBestandCmd(bestandM[1], bestandM[2], bestandM[3] || '');
+
+  // Herinnering
+  const herM = tekst.match(/\[HERINNER:([^:]+):([^\]]+)\]/);
+  if (herM) voegHerinnering(herM[1], herM[2]);
+
+  const aiM = tekst.match(/\[AI_VRAAG:([^\]]+)\]/);
+  if (aiM) vraagAndereAI(aiM[1]);
+
   // Schoon tekst
   return tekst.replace(/\[[^\]]+\]/g, '').trim();
 }
+
+// ── Web Search (DuckDuckGo + Wikipedia) ──────────────
+async function zoekWeb(query) {
+  console.log('[ZOEK]', query);
+  let resultaten = [];
+
+  // 1. DuckDuckGo Instant Answer API
+  try {
+    const r = await fetch('https://api.duckduckgo.com/?q=' + encodeURIComponent(query) + '&format=json&no_html=1&skip_disambig=1');
+    const d = await r.json();
+    if (d.AbstractText && d.AbstractText.length > 30) {
+      resultaten.push(d.AbstractText.slice(0, 400));
+    }
+    if (d.Answer) resultaten.push(d.Answer);
+    if (d.RelatedTopics?.length) {
+      d.RelatedTopics.slice(0, 3).forEach(t => { if (t.Text) resultaten.push(t.Text.slice(0, 150)); });
+    }
+  } catch(e) {}
+
+  // 2. Wikipedia API als backup
+  if (resultaten.length === 0) {
+    try {
+      const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(query.replace(/ /g, '_')));
+      const d = await r.json();
+      if (d.extract) resultaten.push(d.extract.slice(0, 500));
+    } catch(e) {}
+  }
+
+  return resultaten.join(' | ').slice(0, 600) || null;
+}
+
+// ── AI samenwerking ───────────────────────────────────
+async function vraagAndereAI(vraag) {
+  if (statusTxt) statusTxt.textContent = 'AI RAADPLEGEN';
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST', headers:{'Authorization':'Bearer '+GROQ,'Content-Type':'application/json'},
+      body: JSON.stringify({model:'llama-3.3-70b-versatile',
+        messages:[{role:'system',content:'Je bent een gespecialiseerde AI-assistent. Geef een diepgaand, precies antwoord. Max 3 zinnen. Nederlands.'},
+          {role:'user',content:vraag}], max_tokens:200, temperature:0.3})
+    });
+    const d = await res.json();
+    const antwoord = d.choices?.[0]?.message?.content;
+    if (antwoord) {
+      const msg = 'Tweede analyse: ' + antwoord;
+      addMsg('ai', msg);
+      history.push({role:'assistant', content:msg});
+      slaHistoryOp();
+      await speakText(antwoord);
+    }
+  } catch(e) { console.error('AI samenwerking fout:', e); }
+}
+
+// ── Dagelijkse nieuws update ─────────────────────────
+async function haalDagelijkseUpdate() {
+  const vandaag = new Date().toISOString().split('T')[0];
+  if (localStorage.getItem('jarvis_nieuws_datum') === vandaag) return;
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST', headers:{'Authorization':'Bearer '+GROQ,'Content-Type':'application/json'},
+      body: JSON.stringify({model:'llama-3.3-70b-versatile',
+        messages:[{role:'user',content:'Geef 3 belangrijke wereldnieuws updates van vandaag. Elk max 1 zin. Nummer 1, 2, 3. Nederlands.'}],
+        max_tokens:200})
+    });
+    const d = await res.json();
+    const nieuws = d.choices?.[0]?.message?.content;
+    if (nieuws) {
+      localStorage.setItem('jarvis_nieuws_datum', vandaag);
+      localStorage.setItem('jarvis_nieuws', nieuws);
+    }
+  } catch(e) {}
+}
+
 
 // ── Groq AI antwoord ─────────────────────────────────
 async function normaalAntwoord(input) {
@@ -853,6 +1530,7 @@ async function normaalAntwoord(input) {
   addMsg('user', input);
   if (statusTxt) statusTxt.textContent = 'VERWERKT';
 
+  let antwoord = 'Begrepen.';
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -860,38 +1538,100 @@ async function normaalAntwoord(input) {
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [{role:'system', content:getPrompt()}, ...history.slice(-12)],
-        max_tokens: 150,
-        temperature: 0.95
+        max_tokens: 180, temperature: 0.9
       })
     });
     const data = await res.json();
-    const antwoord = data.choices?.[0]?.message?.content?.trim() || 'Begrepen.';
-    history.push({role:'assistant', content:antwoord});
-    slaHistoryOp();
+    antwoord = data.choices?.[0]?.message?.content?.trim() || 'Begrepen.';
 
-    const schoon = verwerkCommandos(antwoord);
-    if (schoon) addMsg('ai', schoon);
-
-    busy = false;
-    await speakText(schoon || 'Begrepen.');
-    if (statusTxt) statusTxt.textContent = 'LUISTERT';
-    if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
-
+    const zoekM = antwoord.match(/\[ZOEK:([^\]]+)\]/);
+    if (zoekM) {
+      if (statusTxt) statusTxt.textContent = 'ZOEKEN';
+      const zoekResultaat = await zoekWeb(zoekM[1]);
+      if (zoekResultaat) {
+        const res2 = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {'Authorization':'Bearer '+GROQ, 'Content-Type':'application/json'},
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {role:'system', content: getPrompt() + '\n\nZOEKRESULTAAT: ' + zoekResultaat},
+              ...history.slice(-10),
+              {role:'user', content: input + '\n\n[Max 2 zinnen.]'}
+            ],
+            max_tokens: 150, temperature: 0.7
+          })
+        });
+        const data2 = await res2.json();
+        antwoord = data2.choices?.[0]?.message?.content?.trim() || antwoord;
+      }
+    }
   } catch(e) {
     console.error('Groq fout:', e);
-    busy = false;
-    addMsg('ai', 'Er is een fout opgetreden.');
-    if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
+    antwoord = 'Er is een verbindingsfout. Probeer opnieuw.';
   }
+
+  // Altijd uitvoeren — ook bij fout
+  history.push({role:'assistant', content:antwoord});
+  slaHistoryOp();
+  const schoon = verwerkCommandos(antwoord);
+  if (schoon) addMsg('ai', schoon);
+
+  busy = false;
+  if (statusTxt) statusTxt.textContent = 'SPREEKT';
+  await speakText(schoon || antwoord || 'Begrepen.');
+  busy = false;
+  isSpeaking = false;
+  // _luisterLoop while-lus hervat automatisch
 }
 
 // ── Input verwerken ──────────────────────────────────
 async function processInput(tekst) {
   if (!tekst || busy) return;
+
+  // Directe herinnering via spraak (backup als AI tag mist)
+  const tl2 = tekst.toLowerCase();
+  const herTriggers = ['herinner me', 'herinner mij', 'stel een herinnering', 'vergeet niet', 'reminder'];
+  if (herTriggers.some(t => tl2.includes(t))) {
+    // Laat AI de herinnering verwerken via tag systeem
+  }
   busy = true;
   isListening = false;
   if (micBtn) micBtn.classList.remove('listening');
   
+  // Lock triggers — direct zonder AI
+  const tl = tekst.toLowerCase();
+  const lockTriggers = ['vergrendel', 'lock', 'scherm vergrendelen', 'laptop vergrendelen', 'pc vergrendelen'];
+  if (lockTriggers.some(t => tl.includes(t)) && !tl.includes('ontgrendel')) {
+    addMsg('user', tekst);
+    addMsg('ai', 'Laptop wordt vergrendeld.');
+    busy = false;
+    await speakText('Laptop wordt vergrendeld.');
+    await stuurPcCmd('lock');
+    busy = false; isSpeaking = false; // loop hervat
+    return;
+  }
+
+  // Schaak triggers
+
+  const schaakTriggers = ['schaak', 'schaken', 'zet mijn pion', 'beste zet', 'analyseer het bord', 
+    'analyseer bord', 'scan het bord', 'scan bord', 'waar moet mijn', 'welke zet'];
+  if (schaakTriggers.some(t => tl.includes(t))) {
+    addMsg('user', tekst);
+    busy = false;
+    if (tl.includes('scan') || tl.includes('camera') || tl.includes('kijk naar')) {
+      toggleSchaak();
+      await schaakCameraAnalyse();
+    } else if (tl.includes('beste zet') || tl.includes('waar moet') || tl.includes('welke zet')) {
+      if (!schaakPanelOpen) toggleSchaak();
+      await schaakBestZet();
+    } else {
+      if (!schaakPanelOpen) toggleSchaak();
+    }
+    busy = false; isSpeaking = false;
+    return;
+  }
+
   // Camera triggers
   const camTriggers = ['wat zie je', 'kijk', 'camera', 'foto', 'bekijk'];
   if (camTriggers.some(t => tekst.toLowerCase().includes(t))) {
@@ -901,7 +1641,7 @@ async function processInput(tekst) {
       addMsg('ai', beschrijving);
       busy = false;
       await speakText(beschrijving);
-      if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
+      busy = false; isSpeaking = false; // loop hervat
       return;
     }
   }
@@ -910,137 +1650,206 @@ async function processInput(tekst) {
 }
 
 // ── Spraakherkenning (Whisper via Groq) ──────────────
+// ── LUISTER LOOP ─────────────────────────────────────
+// ── Langetermijn geheugen ────────────────────────────
+let geheugen = JSON.parse(localStorage.getItem('jarvis_geheugen') || '{}');
+function slaGeheugenOp() { localStorage.setItem('jarvis_geheugen', JSON.stringify(geheugen)); }
+function voegGeheugenToe(s, w) { geheugen[s] = {waarde:w, tijd:Date.now()}; slaGeheugenOp(); }
+function getGeheugenTekst() {
+  const e = Object.entries(geheugen);
+  return e.length ? e.map(([k,v]) => k+': '+v.waarde).join(', ') : 'nog niets onthouden';
+}
+
+// ── Gemini ────────────────────────────────────────
+let GEMINI_KEY = localStorage.getItem('gemini_key') || '';
+async function vraagGemini(vraag) {
+  if (!GEMINI_KEY) return null;
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key='+GEMINI_KEY, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({contents:[{parts:[{text:vraag}]}], generationConfig:{maxOutputTokens:200}})
+    });
+    const d = await r.json();
+    return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  } catch(e) { return null; }
+}
+
+// Simpele loop: neem op → stuur → verwerk → herhaal
+// Geen complexe state machine
+
+let _luisterActief = false;
+
 function beginListening() {
-  if (isListening || busy) return;
-  isListening = true;
-  if (micBtn) micBtn.classList.add('listening');
-  if (statusTxt) statusTxt.textContent = 'LUISTERT';
+  if (_luisterActief) return;
+  _luisterActief = true;
+  busy = false;
+  isSpeaking = false;
+  _luisterLoop();
+}
 
-  navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+function stopListening() {
+  _luisterActief = false;
+  if (micBtn) micBtn.classList.remove('listening');
+  if (statusTxt) statusTxt.textContent = 'GESTOPT';
+}
+
+async function _luisterLoop() {
+  while (_luisterActief) {
+    if (!_luisterActief) break;
+    if (wachtModus) { await new Promise(r => setTimeout(r, 1000)); continue; }
+
+    if (micBtn) micBtn.classList.add('listening');
+    if (statusTxt) statusTxt.textContent = 'LUISTERT';
+
+    // Neem op — ook tijdens spreken van JARVIS
+    const blob = await _neemOp(15000);
+
+    if (micBtn) micBtn.classList.remove('listening');
+
+    if (!blob) {
+      // Mic fout — wacht 3s voor opnieuw proberen
+      await new Promise(r => setTimeout(r, 3000));
+      continue;
+    }
+    if (blob.size < 500) {
+      // Te stil — direct opnieuw
+      continue;
+    }
+
+    if (statusTxt) statusTxt.textContent = 'VERWERKT';
+
+    // Stuur naar Whisper
+    const tekst = await _whisper(blob);
+    if (!tekst) continue; // geen tekst, opnieuw
+
+    // Verwerk — wacht tot klaar
+    await processInput(tekst);
+  }
+}
+
+async function _neemOp(duurMs) {
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({audio: true});
+  } catch(e) {
+    console.error('Mic toegang geweigerd:', e);
+    if (statusTxt) statusTxt.textContent = 'MIC GEBLOKKEERD';
+    await new Promise(r => setTimeout(r, 3000));
+    return null;
+  }
+
+  return new Promise(resolve => {
     const chunks = [];
-    let mimeType = 'audio/webm;codecs=opus';
-    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/webm';
-    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/ogg';
+    let mime = '';
+    // iOS Safari ondersteunt alleen audio/mp4
+    const mimeTypes = /iPhone|iPad|iPod/.test(navigator.userAgent)
+      ? ['audio/mp4', 'audio/aac', 'audio/webm;codecs=opus', 'audio/webm']
+      : ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg', 'audio/mp4'];
+    for (const t of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
+    }
 
-    const recorder = new MediaRecorder(stream, {mimeType});
-    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
-    recorder.onstop = async () => {
+    let rec;
+    try {
+      rec = mime ? new MediaRecorder(stream, {mimeType: mime}) : new MediaRecorder(stream);
+    } catch(e) {
+      console.error('MediaRecorder fout:', e);
       stream.getTracks().forEach(t => t.stop());
-      isListening = false;
-      if (micBtn) micBtn.classList.remove('listening');
+      resolve(null);
+      return;
+    }
 
-      const blob = new Blob(chunks, {type: mimeType});
-      console.log('Opname klaar, blob size:', blob.size);
-      if (blob.size < 1000) {
-        if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 500);
-        return;
-      }
-
-      if (statusTxt) statusTxt.textContent = 'VERWERKT';
-      const fd = new FormData();
-      fd.append('file', new File([blob], 'audio.webm', {type: mimeType}));
-      fd.append('model', 'whisper-large-v3');
-      fd.append('language', 'nl');
-      fd.append('response_format', 'json');
-      fd.append('temperature', '0');
-
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {'Authorization': 'Bearer ' + GROQ},
-          body: fd
-        });
-        const data = await res.json();
-        if (data.error) {
-          console.error('Whisper API fout:', data.error);
-          if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 1000);
-          return;
-        }
-        const tekst = (data.text || '').trim();
-        console.log('Whisper resultaat:', JSON.stringify(tekst));
-
-        const isRuis = !tekst || tekst.length < 2 ||
-          /^[*.\s,!?]+$/.test(tekst) ||
-          ['ondertiteling','www.','http','subscribe','thanks for'].some(r => tekst.toLowerCase().includes(r));
-
-        if (!isRuis) {
-          await processInput(tekst);
-        } else {
-          console.log('Ruis genegeerd:', tekst);
-          if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 300);
-        }
-      } catch(e) {
-        console.error('Whisper fout:', e);
-        if (autoRestart && !busy && !wachtModus) setTimeout(() => beginListening(), 1000);
-      }
+    rec.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    rec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = chunks.length ? new Blob(chunks, {type: mime || 'audio/webm'}) : null;
+      resolve(blob);
+    };
+    rec.onerror = e => {
+      console.error('Recorder fout:', e);
+      stream.getTracks().forEach(t => t.stop());
+      resolve(null);
     };
 
-    recorder.start();
+    rec.start(200);
 
-    // Stilte detectie
-    const audioCtx = new AudioContext();
-    const analyser = audioCtx.createAnalyser();
-    audioCtx.createMediaStreamSource(stream).connect(analyser);
-    analyser.fftSize = 256;
-    const dataArr = new Uint8Array(analyser.frequencyBinCount);
-    let stilteTimer = null;
-    let heeftStem = false;
-    const maxOpname = setTimeout(() => {
-      if (recorder.state === 'recording') recorder.stop();
-    }, 8000);
+    // Stilte detectie — stopt als jij klaar bent met praten
+    let stilteCtx, stilteAnalyser, stilteBuf;
+    let heeftStem = false, stilteTimer = null;
+    try {
+      stilteCtx = new (window.AudioContext || window.webkitAudioContext)();
+      stilteAnalyser = stilteCtx.createAnalyser();
+      stilteAnalyser.fftSize = 256;
+      stilteCtx.createMediaStreamSource(stream).connect(stilteAnalyser);
+      stilteBuf = new Uint8Array(stilteAnalyser.frequencyBinCount);
+    } catch(e) {}
 
-    function checkStilte() {
-      if (recorder.state !== 'recording') return;
-      analyser.getByteFrequencyData(dataArr);
-      const vol = dataArr.reduce((a, b) => a + b) / dataArr.length;
-      if (vol > 15) {
+    // Max 15 seconden absoluut
+    const maxTimer = setTimeout(() => {
+      if (rec.state === 'recording') { try{stilteCtx&&stilteCtx.close();}catch(e){} rec.stop(); }
+    }, 15000);
+
+    // Stop na 12s als helemaal geen stem gedetecteerd
+    const geenStemTimer = setTimeout(() => {
+      if (!heeftStem && rec.state === 'recording') {
+        clearTimeout(maxTimer);
+        try{stilteCtx&&stilteCtx.close();}catch(e){}
+        rec.stop();
+      }
+    }, 12000);
+
+    function checkStem() {
+      if (!stilteAnalyser || rec.state !== 'recording') return;
+      stilteAnalyser.getByteFrequencyData(stilteBuf);
+      let som = 0;
+      for (let i = 0; i < stilteBuf.length; i++) som += stilteBuf[i];
+      const vol = som / stilteBuf.length;
+
+      if (vol > 12) {
+        // Jij praat — onderbreek JARVIS als hij bezig is
+        if (isSpeaking) {
+          onderbrekJarvis();
+        }
         heeftStem = true;
-        targetIntensity = Math.min(1, vol / 60);
+        clearTimeout(geenStemTimer);
         if (stilteTimer) { clearTimeout(stilteTimer); stilteTimer = null; }
       } else if (heeftStem && !stilteTimer) {
+        // 1.5s stilte na jouw stem = klaar
         stilteTimer = setTimeout(() => {
-          clearTimeout(maxOpname);
-          if (recorder.state === 'recording') recorder.stop();
-        }, 1200);
+          clearTimeout(maxTimer);
+          try{stilteCtx&&stilteCtx.close();}catch(e){}
+          if (rec.state === 'recording') rec.stop();
+        }, 1500);
       }
-      requestAnimationFrame(checkStilte);
+      requestAnimationFrame(checkStem);
     }
-    checkStilte();
-
-  }).catch(e => {
-    isListening = false;
-    if (micBtn) micBtn.classList.remove('listening');
-    if (statusTxt) statusTxt.textContent = 'MICROFOON GEBLOKKEERD';
-    console.error('Mic fout:', e);
-    // Automatisch opnieuw proberen na 3 seconden
-    setTimeout(() => {
-      if (autoRestart && !busy && !wachtModus) beginListening();
-    }, 3000);
+    if (stilteAnalyser) checkStem();
+    else setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, duurMs);
   });
 }
 
-function stopListening() { isListening = false; }
-
-// ── Timer ────────────────────────────────────────────
-function startTimer(sec) {
-  const timerBar = document.getElementById('timerBar');
-  const timerFill = document.getElementById('timerFill');
-  const timerDisplay = document.getElementById('timerDisplay');
-  if (!timerBar) return;
-  timerBar.style.display = 'flex';
-  let resterend = sec;
-  const interval = setInterval(() => {
-    resterend--;
-    if (timerFill) timerFill.style.width = ((resterend/sec)*100) + '%';
-    if (timerDisplay) timerDisplay.textContent = resterend + 's';
-    if (resterend <= 0) {
-      clearInterval(interval);
-      timerBar.style.display = 'none';
-      speakText('Timer klaar, Xander.');
-    }
-  }, 1000);
+async function _whisper(blob) {
+  try {
+    const mime = blob.type || 'audio/webm';
+    const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'mp4' : 'webm';
+    const fd = new FormData();
+    fd.append('file', new File([blob], 'audio.' + ext, {type: mime}));
+    fd.append('model', 'whisper-large-v3');
+    fd.append('language', 'nl');
+    fd.append('response_format', 'json');
+    const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer ' + GROQ},
+      body: fd
+    });
+    const data = await res.json();
+    const tekst = (data.text || '').trim();
+    const ruis = ['ondertiteling','subscribe','amara','www.','u kijkt','dank u','[muziek]'];
+    if (!tekst || tekst.length < 2 || ruis.some(r => tekst.toLowerCase().includes(r))) return null;
+    return tekst;
+  } catch(e) { return null; }
 }
+
 
 function startWekker(tijdStr) {
   const check = setInterval(() => {
@@ -1053,34 +1862,216 @@ function startWekker(tijdStr) {
   }, 10000);
 }
 
+
+// ══════════════════════════════════════════════
+// HERINNERINGEN SYSTEEM
+// ══════════════════════════════════════════════
+
+function laadHerinneringen() {
+  try {
+    herinneringen = JSON.parse(localStorage.getItem('jarvis_reminders') || '[]');
+    // Verwijder verlopen herinneringen ouder dan 24u
+    const nu = Date.now();
+    herinneringen = herinneringen.filter(r => (nu - r.tijdMs) < 86400000);
+    slaHerinneringenOp();
+  } catch(e) { herinneringen = []; }
+}
+
+function slaHerinneringenOp() {
+  try { localStorage.setItem('jarvis_reminders', JSON.stringify(herinneringen)); } catch(e) {}
+  tekenHerinneringen();
+}
+
+function voegHerinnering(tijdStr, omschrijving) {
+  const nu = new Date();
+  let tijdMs;
+  let weergaveTijd;
+
+  if (tijdStr.startsWith('+')) {
+    // Relatief: +30 = over 30 minuten
+    const minuten = parseInt(tijdStr.slice(1));
+    tijdMs = nu.getTime() + (minuten * 60000);
+    const dan = new Date(tijdMs);
+    weergaveTijd = 'Over ' + minuten + ' min (' + dan.toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'}) + ')';
+  } else {
+    // Absoluut: 15:30
+    const [uur, min] = tijdStr.split(':').map(Number);
+    const doel = new Date();
+    doel.setHours(uur, min, 0, 0);
+    // Als tijd al voorbij is, stel in voor morgen
+    if (doel.getTime() <= nu.getTime()) doel.setDate(doel.getDate() + 1);
+    tijdMs = doel.getTime();
+    weergaveTijd = tijdStr + (doel.getDate() !== nu.getDate() ? ' (morgen)' : '');
+  }
+
+  const herinnering = {
+    id: Date.now(),
+    tekst: omschrijving,
+    tijdMs,
+    weergaveTijd,
+    klaar: false
+  };
+
+  herinneringen.push(herinnering);
+  herinneringen.sort((a, b) => a.tijdMs - b.tijdMs);
+  slaHerinneringenOp();
+
+  // Plan de notificatie
+  planHerinnering(herinnering);
+
+  console.log('[REMINDER] Ingepland:', omschrijving, 'om', weergaveTijd);
+}
+
+function planHerinnering(herinnering) {
+  const nu = Date.now();
+  const vertraging = herinnering.tijdMs - nu;
+  if (vertraging <= 0) return;
+  setTimeout(() => {
+    vuurHerinnering(herinnering.id);
+  }, vertraging);
+}
+
+async function vuurHerinnering(id) {
+  const her = herinneringen.find(r => r.id === id);
+  if (!her || her.klaar) return;
+  her.klaar = true;
+  slaHerinneringenOp();
+
+  // Toon notificatie popup
+  const notif = document.getElementById('reminderNotif');
+  const notifTekst = document.getElementById('notifTekst');
+  const notifTijd = document.getElementById('notifTijd');
+  if (notif && notifTekst) {
+    notifTekst.textContent = her.tekst;
+    if (notifTijd) notifTijd.textContent = new Date(her.tijdMs).toLocaleTimeString('nl-NL', {hour:'2-digit', minute:'2-digit'});
+    notif.style.display = 'block';
+  }
+
+  // Spreek de herinnering uit
+  const bericht = 'Herinnering voor u, Xander. ' + her.tekst;
+  addMsg('ai', '⏰ ' + her.tekst);
+  await speakText(bericht);
+  busy = false; isSpeaking = false; // loop hervat
+}
+
+function sluitNotif() {
+  const notif = document.getElementById('reminderNotif');
+  if (notif) notif.style.display = 'none';
+}
+
+function tekenHerinneringen() {
+  const lijst = document.getElementById('reminderLijst');
+  const badge = document.getElementById('reminderBadge');
+  if (!lijst) return;
+
+  const actief = herinneringen.filter(r => !r.klaar);
+  const verlopen = herinneringen.filter(r => r.klaar);
+
+  // Badge
+  if (badge) {
+    if (actief.length > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = actief.length;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (herinneringen.length === 0) {
+    lijst.innerHTML = '<div style="text-align:center;color:rgba(0,229,255,0.3);font-size:11px;letter-spacing:1px;padding:16px 0;">GEEN HERINNERINGEN</div>';
+    return;
+  }
+
+  lijst.innerHTML = '';
+
+  // Actieve herinneringen eerst
+  [...actief, ...verlopen].forEach(her => {
+    const item = document.createElement('div');
+    item.className = 'reminder-item' + (her.klaar ? ' klaar' : '');
+    const nu = Date.now();
+    if (!her.klaar && her.tijdMs < nu) item.classList.add('verlopen');
+
+    item.innerHTML =
+      '<div class="reminder-tekst">' + her.tekst + '</div>' +
+      '<div class="reminder-tijd">&#9200; ' + her.weergaveTijd + '</div>' +
+      '<button class="reminder-delete" onclick="verwijderHerinnering(' + her.id + ')">&#x2715;</button>';
+    lijst.appendChild(item);
+  });
+}
+
+function verwijderHerinnering(id) {
+  herinneringen = herinneringen.filter(r => r.id !== id);
+  slaHerinneringenOp();
+}
+
+function verwijderAlleHerinneringen() {
+  herinneringen = [];
+  slaHerinneringenOp();
+  const msg = 'Alle herinneringen gewist.';
+  addMsg('ai', msg); speakText(msg);
+}
+
+function toggleReminders() {
+  const panel = document.getElementById('reminderPanel');
+  if (!panel) return;
+  if (panel.style.display === 'none' || !panel.style.display) {
+    tekenHerinneringen();
+    panel.style.display = 'block';
+  } else {
+    panel.classList.remove('open');
+  }
+}
+
+// Herplan alle herinneringen bij opstarten (na page reload)
+function herplanHerinneringen() {
+  herinneringen.forEach(her => {
+    if (!her.klaar && her.tijdMs > Date.now()) {
+      planHerinnering(her);
+    }
+  });
+}
+
+
 // ── Muziek (Spotify) ─────────────────────────────────
 const SPOTIFY_CLIENT_ID = '185bcafd3b2547ecb566f6688fdbda15';
 const SPOTIFY_REDIRECT = 'http://127.0.0.1:8080/jarvis-ai.html';
 let spotifyToken = null;
+let spotifyRefreshToken = localStorage.getItem('sp_refresh') || null;
+let spotifyTokenExpiry = 0;
+
+async function checkSpotifyToken() {
+  if (spotifyToken && Date.now() < spotifyTokenExpiry - 60000) return true;
+  if (spotifyRefreshToken) {
+    try {
+      const r = await fetch('https://accounts.spotify.com/api/token', {
+        method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({grant_type:'refresh_token', refresh_token:spotifyRefreshToken, client_id:SPOTIFY_CLIENT_ID})
+      });
+      const d = await r.json();
+      if (d.access_token) {
+        spotifyToken = d.access_token;
+        spotifyTokenExpiry = Date.now() + (d.expires_in * 1000);
+        if (d.refresh_token) { spotifyRefreshToken = d.refresh_token; localStorage.setItem('sp_refresh', d.refresh_token); }
+        return true;
+      }
+    } catch(e) {}
+  }
+  return false;
+}
 
 async function zoekMuziek(term) {
-  const muziekBar = document.getElementById('muziekBar');
-  if (!spotifyToken) {
-    await spotifyLogin();
-    return;
-  }
-  try {
-    const r = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(term)}&type=track&limit=1`, {
-      headers: {'Authorization': 'Bearer ' + spotifyToken}
-    });
-    const d = await r.json();
-    const track = d.tracks?.items?.[0];
-    if (track) {
-      const titel = document.getElementById('muziek-titel');
-      if (titel) titel.textContent = track.name + ' — ' + track.artists[0].name;
-      if (muziekBar) muziekBar.style.display = 'flex';
-      await fetch('https://api.spotify.com/v1/me/player/play', {
-        method: 'PUT',
-        headers: {'Authorization': 'Bearer ' + spotifyToken, 'Content-Type': 'application/json'},
-        body: JSON.stringify({uris: [track.uri]})
-      });
-    }
-  } catch(e) { console.error('Spotify fout:', e); }
+  const tl = term.toLowerCase().trim();
+  
+  // Bekende playlists van Xander
+  const playlists = {
+    'x': 'spotify:playlist:37i9dQZF1DX4sWSpwq3LiO', // wordt vervangen door echt ID
+  };
+
+  // Open gewoon de Spotify app
+  window.open('spotify:', '_blank');
+  const msg = 'Spotify wordt geopend.';
+  addMsg('ai', msg);
+  speakText(msg);
 }
 
 async function spotifyLogin() {
@@ -1102,28 +2093,77 @@ async function spotifyLogin() {
       const r = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({grant_type:'authorization_code', code, redirect_uri:SPOTIFY_REDIRECT, client_id:SPOTIFY_CLIENT_ID, code_verifier:verifier})
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code, 
+          redirect_uri: SPOTIFY_REDIRECT,
+          client_id: SPOTIFY_CLIENT_ID,
+          code_verifier: verifier
+        })
       });
       const d = await r.json();
+      console.log('Spotify token response:', d.access_token ? 'OK' : d.error);
       if (d.access_token) {
         spotifyToken = d.access_token;
+        spotifyTokenExpiry = Date.now() + (d.expires_in * 1000);
+        if (d.refresh_token) {
+          spotifyRefreshToken = d.refresh_token;
+          localStorage.setItem('sp_refresh', d.refresh_token);
+        }
+        // Verwijder code uit URL
         history.replaceState({}, '', window.location.pathname);
+        // Speel wachtende muziek af
+        const wachtTerm = sessionStorage.getItem('sp_wacht_term');
+        if (wachtTerm) {
+          sessionStorage.removeItem('sp_wacht_term');
+          setTimeout(() => zoekMuziek(wachtTerm), 1000);
+        } else {
+          // Geen wachtende term — speel playlist X
+          setTimeout(() => zoekMuziek('x'), 1000);
+        }
       }
-    } catch(e) {}
+    } catch(e) { console.error('Spotify token fout:', e); }
   } else {
     console.log('Spotify callback check, code: niet gevonden');
   }
 })();
 
 // ── PC Bridge ────────────────────────────────────────
+
+// ── PC LOCK: vereist update in pc_bridge.py ──────────
+// Voeg dit toe aan pc_bridge.py in de /cmd route:
+// elif cmd == 'lock':
+//     import ctypes
+//     ctypes.windll.user32.LockWorkStation()
+//     return {'status': 'ok', 'bericht': 'Laptop vergrendeld'}
 async function stuurPcCmd(cmd) {
   try {
-    await fetch('http://localhost:8082/cmd', {
+    const res = await fetch('http://localhost:8082/cmd', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({command: cmd})
     });
+    const d = await res.json();
+    if (d.bericht) { addMsg('ai', d.bericht); }
   } catch(e) { console.log('PC bridge niet beschikbaar'); }
+}
+
+async function stuurBestandCmd(actie, pad, inhoud) {
+  try {
+    const res = await fetch('http://localhost:8082/bestand', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({actie: actie.toUpperCase(), pad, inhoud})
+    });
+    const d = await res.json();
+    if (d.bericht) {
+      addMsg('ai', d.bericht);
+      await speakText(d.bericht);
+    }
+  } catch(e) {
+    const msg = 'PC bridge niet bereikbaar voor bestandsbeheer.';
+    addMsg('ai', msg); speakText(msg);
+  }
 }
 
 // ── Nieuws ───────────────────────────────────────────
@@ -1147,6 +2187,59 @@ async function haalNieuws() {
 
 
 // ── Camera analyse ───────────────────────────────────
+async function startObjectTracking(doelObject) {
+  if (objectTrackingActief) stopObjectTracking();
+  gevolgdObject = doelObject || null;
+  objectTrackingActief = true;
+  const preview = document.getElementById('camera-preview');
+  if (!cameraStream || !preview.srcObject) { await startCamera(); await new Promise(r => setTimeout(r, 1500)); }
+  preview.style.display = 'block';
+  if (!objectOverlay) {
+    objectOverlay = document.createElement('div');
+    objectOverlay.id = 'object-overlay';
+    objectOverlay.style.cssText = 'position:fixed;bottom:210px;right:16px;width:170px;background:rgba(0,10,20,0.92);border:1px solid rgba(0,229,255,0.5);border-radius:6px;padding:10px;font-family:monospace;font-size:10px;color:#00e5ff;z-index:101;letter-spacing:1px;line-height:1.6;';
+    document.body.appendChild(objectOverlay);
+  }
+  const doel = gevolgdObject ? '"' + gevolgdObject + '"' : 'OMGEVING';
+  objectOverlay.innerHTML = '<div style="color:rgba(0,229,255,0.6);margin-bottom:4px;">&#9654; TRACKING ' + doel.toUpperCase() + '</div><div id="track-result">Initialiseren...</div><div id="track-tijd" style="color:rgba(0,229,255,0.3);margin-top:4px;font-size:9px;"></div>';
+  const antwoord = 'Object tracking geactiveerd' + (gevolgdObject ? ' voor ' + gevolgdObject : '') + '.';
+  addMsg('ai', antwoord); await speakText(antwoord);
+  objectTrackingInterval = setInterval(async () => {
+    if (!objectTrackingActief) return;
+    const video = document.getElementById('camera-preview');
+    const canvas = document.getElementById('cam-canvas');
+    if (!video || !canvas || !video.videoWidth) return;
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const imgData = canvas.toDataURL('image/jpeg', 0.65).split(',')[1];
+    const tp = gevolgdObject
+      ? 'Focus op "' + gevolgdObject + '": zichtbaar? Positie? Beweegt? Max 1 zin. NL.'
+      : 'Hoofdobject + positie + beweging? Max 1 zin. NL.';
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:'POST', headers:{'Authorization':'Bearer '+GROQ,'Content-Type':'application/json'},
+        body: JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',
+          messages:[{role:'user',content:[{type:'image_url',image_url:{url:'data:image/jpeg;base64,'+imgData}},{type:'text',text:tp}]}],
+          max_tokens:80})
+      });
+      const d = await res.json();
+      const r = d.choices?.[0]?.message?.content?.trim();
+      if (r) {
+        const el = document.getElementById('track-result');
+        const ti = document.getElementById('track-tijd');
+        if (el) el.textContent = r;
+        if (ti) ti.textContent = new Date().toLocaleTimeString('nl-NL');
+      }
+    } catch(e) {}
+  }, 3000);
+}
+
+function stopObjectTracking() {
+  objectTrackingActief = false; gevolgdObject = null;
+  if (objectTrackingInterval) { clearInterval(objectTrackingInterval); objectTrackingInterval = null; }
+  if (objectOverlay) { objectOverlay.remove(); objectOverlay = null; }
+}
+
 async function cameraAnalyse(vraag) {
   const video = document.getElementById('camera-preview');
   const canvas = document.getElementById('cam-canvas');
@@ -1196,7 +2289,7 @@ function startSpontaan() {
       const z = zinnen[Math.floor(Math.random() * zinnen.length)];
       addMsg('ai', z);
       await speakText(z);
-      if (autoRestart && !wachtModus) setTimeout(() => beginListening(), 1000);
+      busy = false; isSpeaking = false; // loop hervat
     }
   }, 300000);
 }
@@ -1208,16 +2301,338 @@ async function haalWeer() {
     const d = await r.json();
     const temp = Math.round(d.current.temperature_2m);
     const code = d.current.weathercode;
-    const omschr = code <= 1 ? 'zonnig' : code <= 3 ? 'bewolkt' : code <= 67 ? 'regenachtig' : 'winterse neerslag';
+    const uurNu = new Date().getHours();
+    const isNacht = uurNu >= 21 || uurNu < 6;
+    const isAvond = uurNu >= 18 && uurNu < 21;
+    let omschr;
+    if (code <= 1) {
+      omschr = isNacht ? 'helder, sterrenhemel' : isAvond ? 'helder' : 'zonnig';
+    } else if (code <= 3) {
+      omschr = isNacht ? 'bewolkt' : 'bewolkt';
+    } else if (code <= 67) {
+      omschr = 'regenachtig';
+    } else {
+      omschr = 'winterse neerslag';
+    }
     weerTekst = temp + ' graden, ' + omschr;
   } catch(e) {}
 }
 
 // ── Startfunctie ─────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// JARVIS SCHAAK SYSTEEM
+// ══════════════════════════════════════════════════════
+
+// Stukken: hoofdletter=wit, kleine letter=zwart
+// K=Koning, Q=Dame, R=Toren, B=Loper, N=Paard, P=Pion
+const SCHAAK_START = [
+  ['r','n','b','q','k','b','n','r'],
+  ['p','p','p','p','p','p','p','p'],
+  [' ',' ',' ',' ',' ',' ',' ',' '],
+  [' ',' ',' ',' ',' ',' ',' ',' '],
+  [' ',' ',' ',' ',' ',' ',' ',' '],
+  [' ',' ',' ',' ',' ',' ',' ',' '],
+  ['P','P','P','P','P','P','P','P'],
+  ['R','N','B','Q','K','B','N','R']
+];
+
+const STUK_SYMBOOL = {
+  'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙',
+  'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟',' ':''
+};
+
+let schaakBord = null;
+let schaakBeurtWit = true;
+let schaakGeselecteerd = null;
+let schaakMogelijkeZetten = [];
+let schaakGeschiedenis = [];
+let schaakCameraActief = false;
+let schaakPanelOpen = false;
+
+function schaakInit() {
+  schaakBord = SCHAAK_START.map(r => [...r]);
+  schaakBeurtWit = true;
+  schaakGeselecteerd = null;
+  schaakMogelijkeZetten = [];
+  schaakGeschiedenis = [];
+  tekenSchaakBord();
+}
+
+function toggleSchaak() {
+  schaakPanelOpen = !schaakPanelOpen;
+  const panel = document.getElementById('schaakPanel');
+  if (!panel) return;
+  if (schaakPanelOpen) {
+    panel.classList.add('open');
+    if (!schaakBord) schaakInit();
+    tekenSchaakBord();
+    const msg = 'Schaakanalyse actief. Ik kan het bord scannen via de camera, of u kunt de stukken handmatig bewegen.';
+    speakText(msg);
+  } else {
+    panel.classList.remove('open');
+  }
+}
+
+function tekenSchaakBord() {
+  const bord = document.getElementById('schaakBord');
+  const beurtEl = document.getElementById('schaakBeurt');
+  if (!bord || !schaakBord) return;
+  if (beurtEl) beurtEl.textContent = 'AAN ZET: ' + (schaakBeurtWit ? 'WIT ♔' : 'ZWART ♚');
+
+  bord.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let k = 0; k < 8; k++) {
+      const vak = document.createElement('div');
+      vak.className = 'schaak-vak ' + ((r + k) % 2 === 0 ? 'licht' : 'donker');
+
+      // Markeer geselecteerd
+      if (schaakGeselecteerd && schaakGeselecteerd[0] === r && schaakGeselecteerd[1] === k) {
+        vak.classList.add('geselecteerd');
+      }
+      // Markeer mogelijke zetten
+      if (schaakMogelijkeZetten.some(z => z[0] === r && z[1] === k)) {
+        vak.classList.add('mogelijk');
+      }
+      // Markeer laatste zet
+      if (schaakGeschiedenis.length > 0) {
+        const lz = schaakGeschiedenis[schaakGeschiedenis.length-1];
+        if ((lz.naar[0]===r && lz.naar[1]===k) || (lz.van[0]===r && lz.van[1]===k)) {
+          vak.classList.add('laatste-zet');
+        }
+      }
+
+      const stuk = schaakBord[r][k];
+      vak.textContent = STUK_SYMBOOL[stuk] || '';
+      vak.style.fontSize = stuk !== ' ' ? '16px' : '';
+      vak.onclick = () => schaakKlik(r, k);
+      bord.appendChild(vak);
+    }
+  }
+}
+
+function isWitStuk(s) { return s !== ' ' && s === s.toUpperCase(); }
+function isZwartStuk(s) { return s !== ' ' && s === s.toLowerCase(); }
+function isVijand(s, wit) { return wit ? isZwartStuk(s) : isWitStuk(s); }
+function isLeeg(s) { return s === ' '; }
+
+function getMogelijkeZetten(bord, r, k, wit) {
+  const stuk = bord[r][k].toUpperCase();
+  const zetten = [];
+  const mijnStuk = bord[r][k];
+
+  function voegToe(nr, nk) {
+    if (nr < 0 || nr > 7 || nk < 0 || nk > 7) return false;
+    const doel = bord[nr][nk];
+    if (isLeeg(doel) || isVijand(doel, wit)) { zetten.push([nr, nk]); }
+    return isLeeg(doel);
+  }
+
+  if (stuk === 'P') {
+    const richting = wit ? -1 : 1;
+    const startRij = wit ? 6 : 1;
+    if (r + richting >= 0 && r + richting <= 7 && isLeeg(bord[r+richting][k])) {
+      zetten.push([r+richting, k]);
+      if (r === startRij && isLeeg(bord[r+2*richting][k])) zetten.push([r+2*richting, k]);
+    }
+    [-1, 1].forEach(dk => {
+      if (k+dk >= 0 && k+dk <= 7 && r+richting >= 0 && r+richting <= 7) {
+        if (isVijand(bord[r+richting][k+dk], wit)) zetten.push([r+richting, k+dk]);
+      }
+    });
+  } else if (stuk === 'N') {
+    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dk]) => voegToe(r+dr,k+dk));
+  } else if (stuk === 'B') {
+    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dk]) => { let nr=r+dr,nk=k+dk; while(voegToe(nr,nk)){nr+=dr;nk+=dk;} });
+  } else if (stuk === 'R') {
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dk]) => { let nr=r+dr,nk=k+dk; while(voegToe(nr,nk)){nr+=dr;nk+=dk;} });
+  } else if (stuk === 'Q') {
+    [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dk]) => {
+      let nr=r+dr,nk=k+dk; while(voegToe(nr,nk)){nr+=dr;nk+=dk;}
+    });
+  } else if (stuk === 'K') {
+    [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dr,dk]) => voegToe(r+dr,k+dk));
+  }
+  return zetten;
+}
+
+function schaakKlik(r, k) {
+  if (!schaakBord) return;
+  const stuk = schaakBord[r][k];
+  const mijnBeurt = schaakBeurtWit ? isWitStuk(stuk) : isZwartStuk(stuk);
+
+  // Als al geselecteerd en dit is een mogelijke zet
+  if (schaakGeselecteerd) {
+    const mogelijkHier = schaakMogelijkeZetten.some(z => z[0]===r && z[1]===k);
+    if (mogelijkHier) {
+      // Voer zet uit
+      voerZetUit(schaakGeselecteerd[0], schaakGeselecteerd[1], r, k);
+      schaakGeselecteerd = null;
+      schaakMogelijkeZetten = [];
+      tekenSchaakBord();
+      return;
+    }
+  }
+
+  // Selecteer stuk
+  if (mijnBeurt) {
+    schaakGeselecteerd = [r, k];
+    schaakMogelijkeZetten = getMogelijkeZetten(schaakBord, r, k, schaakBeurtWit);
+  } else {
+    schaakGeselecteerd = null;
+    schaakMogelijkeZetten = [];
+  }
+  tekenSchaakBord();
+}
+
+function voerZetUit(vanR, vanK, naarR, naarK) {
+  const stuk = schaakBord[vanR][vanK];
+  const geslagen = schaakBord[naarR][naarK];
+  schaakGeschiedenis.push({stuk, van:[vanR,vanK], naar:[naarR,naarK], geslagen});
+  schaakBord[naarR][naarK] = stuk;
+  schaakBord[vanR][vanK] = ' ';
+  // Pion promotie
+  if (stuk === 'P' && naarR === 0) schaakBord[naarR][naarK] = 'Q';
+  if (stuk === 'p' && naarR === 7) schaakBord[naarR][naarK] = 'q';
+  schaakBeurtWit = !schaakBeurtWit;
+
+  const kols = ['a','b','c','d','e','f','g','h'];
+  const zetNotatie = stuk.toUpperCase() + kols[vanK] + (8-vanR) + '→' + kols[naarK] + (8-naarR);
+  const statusEl = document.getElementById('schaakStatus');
+  if (statusEl) statusEl.textContent = 'ZET: ' + zetNotatie;
+  tekenSchaakBord();
+}
+
+function schaakWisselBeurt() {
+  schaakBeurtWit = !schaakBeurtWit;
+  schaakGeselecteerd = null;
+  schaakMogelijkeZetten = [];
+  tekenSchaakBord();
+}
+
+function schaakNieuwSpel() {
+  schaakInit();
+  const adviesEl = document.getElementById('schaakAdvies');
+  if (adviesEl) adviesEl.textContent = 'Nieuw spel gestart. Wit begint.';
+  const statusEl = document.getElementById('schaakStatus');
+  if (statusEl) statusEl.textContent = 'KLAAR';
+  speakText('Nieuw schaakspel gestart. Wit begint.');
+}
+
+// ── Camera bord scan ─────────────────────────────────
+async function schaakCameraAnalyse() {
+  const statusEl = document.getElementById('schaakStatus');
+  const adviesEl = document.getElementById('schaakAdvies');
+  if (statusEl) statusEl.textContent = 'CAMERA SCANNEN...';
+  if (adviesEl) adviesEl.textContent = 'Bord wordt gescand...';
+
+  const video = document.getElementById('camera-preview');
+  const canvas = document.getElementById('cam-canvas');
+  if (!video || !canvas) { if (adviesEl) adviesEl.textContent = 'Camera niet beschikbaar.'; return; }
+
+  if (!cameraStream || !video.srcObject) {
+    await startCamera();
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  if (!video.videoWidth) { if (adviesEl) adviesEl.textContent = 'Camera kon niet starten.'; return; }
+
+  video.style.display = 'block';
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const imgData = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+GROQ,'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages:[{role:'user', content:[
+          {type:'image_url', image_url:{url:'data:image/jpeg;base64,'+imgData}},
+          {type:'text', text:`Dit is een schaakbord. Analyseer de positie grondig.
+Beschrijf:
+1. Welke stukken staan waar (gebruik schaaknotatie: e.g. Witte Paard op e4, Zwarte Toren op d8)
+2. Wie staat er beter en waarom (1 zin)
+3. De BESTE volgende zet voor ${schaakBeurtWit ? 'WIT' : 'ZWART'} (in formaat: stuk van X naar Y, bijv. Paard e2 naar f4)
+4. Waarom deze zet sterk is (1 zin)
+Antwoord in het Nederlands. Wees specifiek en direct.`}
+        ]}],
+        max_tokens: 300
+      })
+    });
+    const d = await res.json();
+    const analyse = d.choices?.[0]?.message?.content?.trim();
+    if (analyse) {
+      if (adviesEl) adviesEl.textContent = analyse;
+      if (statusEl) statusEl.textContent = 'ANALYSE KLAAR';
+      // Spreek alleen de beste zet voor
+      const zetMatch = analyse.match(/(?:beste.*?zet|aanbeveel|speel|zet).*?([A-Z][a-z]+\s+[a-h][1-8]\s+naar\s+[a-h][1-8])/i);
+      const uitspraak = zetMatch ? zetMatch[1] : analyse.split('.')[0];
+      await speakText('Mijn analyse: ' + uitspraak);
+    }
+  } catch(e) {
+    if (adviesEl) adviesEl.textContent = 'Analyse mislukt. Probeer opnieuw.';
+    if (statusEl) statusEl.textContent = 'FOUT';
+  }
+}
+
+// ── AI beste zet berekenen (zonder camera) ──────────
+async function schaakBestZet() {
+  if (!schaakBord) return;
+  const statusEl = document.getElementById('schaakStatus');
+  const adviesEl = document.getElementById('schaakAdvies');
+  if (statusEl) statusEl.textContent = 'BEREKENEN...';
+  if (adviesEl) adviesEl.textContent = 'Beste zet wordt berekend...';
+
+  // Bouw FEN-achtige positiebeschrijving
+  const kols = ['a','b','c','d','e','f','g','h'];
+  let positie = '';
+  for (let r = 0; r < 8; r++) {
+    for (let k = 0; k < 8; k++) {
+      const s = schaakBord[r][k];
+      if (s !== ' ') positie += STUK_SYMBOOL[s] + '(' + kols[k] + (8-r) + ') ';
+    }
+    positie += '\n';
+  }
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+GROQ,'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[
+          {role:'system', content:'Je bent een schaakgrootmeester. Analyseer de positie en geef de beste zet. Antwoord in het Nederlands. Maximaal 2 zinnen.'},
+          {role:'user', content:`Schaakbord positie (${schaakBeurtWit?'Wit':'Zwart'} aan zet):\n${positie}\nWat is de beste zet en waarom?`}
+        ],
+        max_tokens:150,
+        temperature:0.2
+      })
+    });
+    const d = await res.json();
+    const advies = d.choices?.[0]?.message?.content?.trim();
+    if (advies) {
+      if (adviesEl) adviesEl.textContent = advies;
+      if (statusEl) statusEl.textContent = 'ADVIES KLAAR';
+      await speakText(advies);
+    }
+  } catch(e) {
+    if (adviesEl) adviesEl.textContent = 'Kon geen advies berekenen.';
+    if (statusEl) statusEl.textContent = 'FOUT';
+  }
+}
+
 async function init() {
   if (gestart) return;
   gestart = true;
+  const hint = document.getElementById('startHint');
+  if (hint) hint.remove();
   if (statusTxt) statusTxt.textContent = 'LADEN';
+
+  // Laad en herplan herinneringen
+  laadHerinneringen();
+  herplanHerinneringen();
+  // Schaak init uitgesteld
+  setTimeout(() => { if (typeof schaakInit === 'function') { /* klaar bij gebruik */ } }, 100);
 
   await haalWeer();
 
@@ -1236,72 +2651,92 @@ async function init() {
   if (statusTxt) statusTxt.textContent = 'GEREED';
 
   await speakText(tekst);
-  autoRestart = true;
-  setTimeout(() => beginListening(), 800);
+  busy = false;
+  isSpeaking = false;
+  setTimeout(() => beginListening(), 500);
   startSpontaan();
 }
 
 // ── Event listeners ──────────────────────────────────
-
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
+// ── Audio unlock + init helper ───────────────────────
 async function unlockAudio() {
   try {
     if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
     if (_ac.state === 'suspended') await _ac.resume();
-    const buf = _ac.createBuffer(1, 1, 22050);
+    const buf = _ac.createBuffer(1,1,22050);
     const src = _ac.createBufferSource();
     src.buffer = buf; src.connect(_ac.destination); src.start(0);
-    console.log('[AUDIO] Unlocked:', _ac.state);
-  } catch(e) { console.log('[AUDIO] Fout:', e); }
+  } catch(e) {}
+  // iOS Safari: ook spraaksynth unlocken
+  try {
+    const u = new SpeechSynthesisUtterance('');
+    window.speechSynthesis.speak(u);
+    window.speechSynthesis.cancel();
+  } catch(e) {}
 }
 
-const startScherm = document.getElementById('startScherm');
-const startKnop = document.getElementById('startKnop');
-
-// Toon altijd het startscherm — iOS en desktop
-if (startScherm) startScherm.style.display = 'flex';
-
-async function activeerJarvis(e) {
-  if (e) e.preventDefault();
-  // Audio unlock MOET direct in de tap/click handler
-  await unlockAudio();
-  if (speechSynthesis) {
-    const stil = new SpeechSynthesisUtterance(' ');
-    stil.volume = 0;
-    speechSynthesis.speak(stil);
-  }
-  if (startScherm) startScherm.style.display = 'none';
-  if (!gestart) await init();
-}
-
-if (startKnop) {
-  startKnop.addEventListener('touchend', activeerJarvis, {passive: false});
-  startKnop.addEventListener('click', activeerJarvis);
-}
-
-// Desktop fallback: klik ergens buiten startscherm
-document.addEventListener('click', async (e) => {
-  if (!gestart && (!startScherm || startScherm.style.display === 'none')) {
-    await unlockAudio();
-    await init();
-  }
-});
-
-// Microfoon knop
+// ── Mic knop ─────────────────────────────────────────
 if (micBtn) {
-  micBtn.addEventListener('click', e => {
+  micBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
-    if (isListening) {
+    await unlockAudio();
+    if (!gestart) {
+      // Eerste klik: start JARVIS
+      init();
+      return;
+    }
+    if (isSpeaking || busy) {
+      onderbrekJarvis();
+      setTimeout(() => { autoRestart = true; beginListening(); }, 300);
+    } else if (isListening) {
       autoRestart = false;
       stopListening();
-    } else if (!busy) {
+    } else {
       autoRestart = true;
       beginListening();
     }
   });
 }
+
+// ── Klik ergens anders op pagina = ook starten ────────
+document.addEventListener('click', async () => {
+  await unlockAudio();
+  if (!gestart) init();
+});
+
+// iOS Safari: ook touchend event voor betere respons
+document.addEventListener('touchend', async (e) => {
+  await unlockAudio();
+  if (!gestart) init();
+}, {passive: true});
+
+// ── Spatiebalk ────────────────────────────────────────
+document.addEventListener('keydown', async (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    await unlockAudio();
+    if (!gestart) { init(); return; }
+    if (!isListening && !busy) { autoRestart = true; beginListening(); }
+  }
+});
+
+// ── Start hint ────────────────────────────────────────
+setTimeout(() => {
+  if (!gestart) {
+    const hint = document.createElement('div');
+    hint.id = 'startHint';
+    hint.style.cssText = [
+      'position:fixed', 'bottom:90px', 'left:50%',
+      'transform:translateX(-50%)',
+      'font-family:Orbitron,sans-serif', 'font-size:10px',
+      'letter-spacing:3px', 'color:rgba(0,229,255,0.5)',
+      'pointer-events:none', 'text-align:center',
+      'animation:knipperHint 1.5s ease-in-out infinite'
+    ].join(';');
+    hint.textContent = 'KLIK OM TE ACTIVEREN';
+    document.body.appendChild(hint);
+  }
+}, 300);
 
 // Tekstinvoer
 const tekstInput = document.getElementById('tekstInput');
@@ -1318,11 +2753,12 @@ if (tekstVerzend && tekstInput) {
 }
 
 // Zelfvernieting
-const destructBtn = document.getElementById('destructBtn');
 const destructOverlay = document.getElementById('destructOverlay');
 const destructInput = document.getElementById('destructInput');
 const destructFout = document.getElementById('destruct-fout');
 
+// Nieuwe destructBtn is in de ctrl-rail
+const destructBtn = document.getElementById('destructBtn');
 if (destructBtn) {
   destructBtn.addEventListener('click', e => {
     e.stopPropagation();
@@ -1337,7 +2773,7 @@ if (destructOverlay) {
 if (destructInput) {
   destructInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
-      if (destructInput.value === 'XANDER-OVERRIDE-9') {
+      if (destructInput.value === 'JARVIS') {
         try { localStorage.clear(); } catch(e2) {}
         history = []; voorkeuren = {}; profiel = '';
         addMsg('ai', 'Systeem gewist. Ik ben er nog, maar ik herinner me niets meer.');
@@ -1354,6 +2790,30 @@ if (destructInput) {
 if (statusTxt) statusTxt.textContent = 'WACHT OP ACTIVATIE';
 
 // ── Camera toggle ────────────────────────────────────
+// ── Toolbar rail toggle ──────────────────────────────
+let railOpen = false;
+function toggleRail() {
+  railOpen = !railOpen;
+  const rail = document.getElementById('ctrlRail');
+  const toggle = document.getElementById('ctrlToggle');
+  const divider = document.getElementById('ctrlDivider');
+  if (rail) rail.classList.toggle('open', railOpen);
+  if (toggle) toggle.classList.toggle('open', railOpen);
+  if (divider) divider.classList.toggle('open', railOpen);
+}
+
+function toggleTekstInput() {
+  const wrap = document.getElementById('tekstWrap');
+  if (wrap) {
+    const zichtbaar = wrap.style.display !== 'none' && wrap.style.display !== '';
+    wrap.style.display = zichtbaar ? 'none' : 'flex';
+    if (!zichtbaar) {
+      const inp = document.getElementById('tekstInput');
+      if (inp) inp.focus();
+    }
+  }
+}
+
 function toggleCamera() {
   const preview = document.getElementById('camera-preview');
   if (!preview) return;
@@ -1432,17 +2892,63 @@ function bevestigDestruct() {
   const input = document.getElementById('destructInput');
   const fout = document.getElementById('destruct-fout');
   if (!input) return;
-  if (input.value === 'XANDER-OVERRIDE-9') {
-    try { localStorage.clear(); } catch(e) {}
-    history = []; voorkeuren = {}; profiel = '';
+
+  if (input.value.toUpperCase() === 'JARVIS') {
+    // Autorisatie geslaagd — echte zelfvernietiging
     const overlay = document.getElementById('destructOverlay');
-    if (overlay) overlay.style.display = 'none';
-    addMsg('ai', 'Systeem gewist. Geheugen leeg. Ik ben er nog.');
-    speakText('Systeem gewist. Geheugen leeg. Ik ben er nog.');
-    autoRestart = true;
-    beginListening();
+    if (overlay) {
+      overlay.innerHTML = '<div style="text-align:center;font-family:Orbitron,sans-serif;color:#ff3333;">' +
+        '<div style="font-size:18px;letter-spacing:8px;margin-bottom:16px;">SYSTEEM WISSEN</div>' +
+        '<div style="font-size:11px;letter-spacing:3px;color:rgba(255,100,100,0.7);">INITIALISEREN...</div>' +
+        '</div>';
+    }
+
+    // Stop alles
+    autoRestart = false;
+    isListening = false;
+    busy = false;
+    if (huidigAudio) { try { huidigAudio.pause(); } catch(e) {} huidigAudio = null; }
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
+    stopObjectTracking();
+
+    // Wis alle opgeslagen data
+    try { localStorage.clear(); } catch(e) {}
+    try { sessionStorage.clear(); } catch(e) {}
+
+    // Reset state
+    history = []; voorkeuren = {}; profiel = '';
+    herinneringen = [];
+
+    // Countdown animatie dan pagina sluiten/leegmaken
+    let teller = 3;
+    const countdown = setInterval(() => {
+      const box = document.querySelector('.destruct-box') || overlay;
+      if (box) box.querySelector && (box.innerHTML =
+        '<div style="text-align:center;font-family:Orbitron,sans-serif;">' +
+        '<div style="font-size:48px;color:#ff3333;text-shadow:0 0 30px #ff3333;">' + teller + '</div>' +
+        '<div style="font-size:10px;letter-spacing:4px;color:rgba(255,100,100,0.6);margin-top:8px;">WISSEN IN UITVOERING</div>' +
+        '</div>');
+      teller--;
+      if (teller < 0) {
+        clearInterval(countdown);
+        // Vervang pagina inhoud volledig
+        // Vervang pagina met offline scherm
+        document.body.innerHTML = '';
+        document.body.style.cssText = 'background:#000;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;';
+        const p = document.createElement('p');
+        p.textContent = 'SYSTEEM OFFLINE';
+        p.style.cssText = 'color:rgba(255,50,50,0.4);font-family:monospace;font-size:12px;letter-spacing:4px;';
+        document.body.appendChild(p);
+        document.close();
+      }
+    }, 1000);
+
   } else {
-    if (fout) fout.textContent = 'Onjuiste code.';
+    if (fout) {
+      fout.textContent = 'ONJUISTE AUTORISATIECODE';
+      if (input) { input.value = ''; input.focus(); }
+      setTimeout(() => { if (fout) fout.textContent = ''; }, 2000);
+    }
   }
 }
 
