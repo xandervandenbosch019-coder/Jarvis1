@@ -1266,7 +1266,6 @@ function speakText(tekst) {
 
     function probeerVolgende() {
       if (stemIdx >= stemIDs.length) {
-        // Alle ElevenLabs opties geprobeerd — browser spraak
         clearTimeout(absTimer);
         browserStem(tekst, done);
         return;
@@ -1314,6 +1313,8 @@ function speakText(tekst) {
           huidigAudio = null; URL.revokeObjectURL(url);
           browserStem(tekst, done);
         };
+        // iOS: resume AudioContext voor play
+        if (_ac && _ac.state === 'suspended') { try { _ac.resume(); } catch(e) {} }
         audio.play().catch(() => {
           huidigAudio = null;
           browserStem(tekst, done);
@@ -2667,11 +2668,21 @@ async function unlockAudio() {
     const src = _ac.createBufferSource();
     src.buffer = buf; src.connect(_ac.destination); src.start(0);
   } catch(e) {}
-  // iOS Safari: ook spraaksynth unlocken
+  // iOS Safari: unlock spraaksynth
   try {
     const u = new SpeechSynthesisUtterance('');
     window.speechSynthesis.speak(u);
     window.speechSynthesis.cancel();
+  } catch(e) {}
+  // iOS Safari: unlock audio element
+  try {
+    if (!window._iosAudio) {
+      window._iosAudio = new Audio();
+      window._iosAudio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAA'
+        + 'EAAQARgAAAIAIAAFAAAAAABkYXRhAAAA';
+    }
+    await window._iosAudio.play().catch(()=>{});
+    window._iosAudio.pause();
   } catch(e) {}
 }
 
